@@ -58,12 +58,30 @@ public class AuthService {
 
     public ResponseEntity<?> login(LoginRequestDTO request) {
         try {
+            try {
+                User user = userService.getUserByEmail(request.getEmail());
+                if (user.getProvider() == Provider.GOOGLE) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body("Please use Google to log in");
+                }
+            } catch (UsernameNotFoundException ignored) {
+                // Kontynuuj proces logowania - błędne dane i tak zostaną odrzucone
+            }
+
+            // Istniejący kod uwierzytelniania
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             request.getEmail(),
                             request.getPassword()
                     )
             );
+//        try {
+//            Authentication authentication = authenticationManager.authenticate(
+//                    new UsernamePasswordAuthenticationToken(
+//                            request.getEmail(),
+//                            request.getPassword()
+//                    )
+//            );
 
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
             User user = userService.getUserByEmail(userDetails.getUsername());

@@ -75,6 +75,7 @@ public class UserService implements UserDetailsService {
                             .enabled(true)
                             .role(Role.USER)
                             .provider(Provider.GOOGLE)
+                            .password("AUTH_Google") // for OAuth users
                             .profile(new UserProfile(firstName, lastName))
                             .build();
 
