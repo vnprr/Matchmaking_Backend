@@ -16,6 +16,9 @@ import java.time.LocalDateTime;
 @Builder
 @EntityListeners(AuditingEntityListener.class)
 public class UserProfileSectionDefinition {
+    /**
+    Definicja sekcji w profilu użytkownika.
+     */
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -38,9 +41,15 @@ public class UserProfileSectionDefinition {
 
     @Column(nullable = false, updatable = false)
     @CreatedDate
-    private LocalDateTime createdAt;
+    private LocalDateTime createdAt;    // created
 
     @Column(nullable = false)
     @LastModifiedDate
-    private LocalDateTime updatedAt;
+    private LocalDateTime updatedAt;    // updated
+
+//    @Enumerated(EnumType.STRING)
+//    private FieldType type;
+//
+//    @OneToMany(mappedBy = "fieldDefinition", cascade = CascadeType.ALL, orphanRemoval = true)
+//    private List<FieldOption> options = new ArrayList<>();
 }

@@ -35,7 +35,8 @@ public class UserProfileSectionController {
 
     @PutMapping
     public ResponseEntity<?> updateUserProfileSections(
-            @RequestBody List<UserProfileSectionContentChangeDTO> sections) {
+            @RequestBody List<UserProfileSectionContentChangeDTO> sections
+    ) {
         try {
             sectionService.updateUserProfileSections(sections);
             return ResponseEntity.ok("Sekcje zostały zaktualizowane");

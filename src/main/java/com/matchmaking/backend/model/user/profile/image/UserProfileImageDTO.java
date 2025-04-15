@@ -6,6 +6,7 @@ import lombok.Data;
 public class UserProfileImageDTO {
     private Long id;
     private String imageUrl;
-    private Integer displayOrder;
+    private String profileImageUrl;
     private boolean isMain;
+    private int displayOrder;
 }

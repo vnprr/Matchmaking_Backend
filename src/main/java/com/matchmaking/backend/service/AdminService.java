@@ -7,7 +7,7 @@ import com.matchmaking.backend.model.AdminUserDTO;
 import com.matchmaking.backend.model.AdminUserListDTO;
 import com.matchmaking.backend.repository.UserRepository;
 import com.matchmaking.backend.service.user.profile.UserProfileCreatorService;
-import com.matchmaking.backend.service.user.profile.UserProfileService;
+import com.matchmaking.backend.service.user.profile.image.CloudinaryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;

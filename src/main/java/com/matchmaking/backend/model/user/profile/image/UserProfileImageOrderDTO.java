@@ -12,4 +12,5 @@ public class UserProfileImageOrderDTO {
         private Long id;
         private Integer displayOrder;
     }
+
 }

@@ -1,8 +1,9 @@
 package com.matchmaking.backend.controller;
 
+import com.matchmaking.backend.model.user.profile.image.ImageCropDTO;
 import com.matchmaking.backend.model.user.profile.image.UserProfileImageDTO;
 import com.matchmaking.backend.model.user.profile.image.UserProfileImageOrderDTO;
-import com.matchmaking.backend.service.ImageService;
+import com.matchmaking.backend.service.user.profile.image.ImageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -57,6 +58,21 @@ public class ImageController {
             return ResponseEntity.ok("Zdjęcie zostało ustawione jako główne");
         } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/{imageId}/crop")
+    public ResponseEntity<?> cropProfileImage(
+            @PathVariable Long imageId,
+            @RequestBody ImageCropDTO cropDTO) {
+        try {
+            UserProfileImageDTO imageDTO = imageService.cropAndSetProfileImage(imageId, cropDTO);
+            return ResponseEntity.ok(imageDTO);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Nie udało się przyciąć zdjęcia: " + e.getMessage());
         }
     }
 

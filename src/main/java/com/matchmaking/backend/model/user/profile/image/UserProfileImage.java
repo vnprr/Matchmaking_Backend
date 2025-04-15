@@ -3,6 +3,7 @@ package com.matchmaking.backend.model.user.profile.image;
 import com.matchmaking.backend.model.UserProfile;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
@@ -16,27 +17,31 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @EntityListeners(AuditingEntityListener.class)
 public class UserProfileImage {
-
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(nullable = false)
-    private String imageUrl;
-
-    @Column(nullable = false)
-    private String publicId;
-
-    @Column(nullable = false)
-    private Integer displayOrder;
-
-    @Column(nullable = false)
-    private boolean isMain;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_profile_id", nullable = false)
     private UserProfile userProfile;
+
+    // Oryginalne zdjęcie
+    private String publicId;
+    @Column(name = "image_url", nullable = false)
+    private String imageUrl;
+
+    // Przycięte zdjęcie profilowe (jeśli ten obrazek jest użyty jako zdjęcie profilowe)
+    private String profileImagePublicId;
+    private String profileImageUrl;
+
+    // Czy to jest główne zdjęcie w galerii
+    private boolean isMain;
+
+    // Kolejność wyświetlania
+    private int displayOrder;
 
     @Column(nullable = false, updatable = false)
     @CreatedDate
