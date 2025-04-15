@@ -20,6 +20,11 @@ public class ImageController {
 
     private final ImageService imageService;
 
+    @GetMapping("/profile-image")
+    public ResponseEntity<UserProfileImageDTO> getProfileImage() {
+        return ResponseEntity.ok(imageService.getCurrentUserProfileImage());
+    }
+
     @GetMapping
     public ResponseEntity<List<UserProfileImageDTO>> getUserProfileImages() {
         return ResponseEntity.ok(imageService.getUserProfileImages());
@@ -51,14 +56,9 @@ public class ImageController {
         }
     }
 
-    @PutMapping("/{imageId}/main")
-    public ResponseEntity<?> setMainProfileImage(@PathVariable Long imageId) {
-        try {
-            imageService.setMainProfileImage(imageId);
-            return ResponseEntity.ok("Zdjęcie zostało ustawione jako główne");
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    @GetMapping("/profile")
+    public ResponseEntity<UserProfileImageDTO> getUserProfileImage() {
+        return ResponseEntity.ok(imageService.getCurrentUserProfileImage());
     }
 
     @PostMapping("/{imageId}/crop")

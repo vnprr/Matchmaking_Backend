@@ -10,4 +10,5 @@ public class UserProfileRequestDTO {
     private Gender gender;
     private LocalDate dateOfBirth;
     private String bio;
+    // private String profileImage;
 }

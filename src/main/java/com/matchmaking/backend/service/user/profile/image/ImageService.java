@@ -31,6 +31,14 @@ public class ImageService {
     private static final int MAX_IMAGES_PER_USER = 10;
 
     @Transactional(readOnly = true)
+    public UserProfileImageDTO getCurrentUserProfileImage() {
+        User user = getCurrentUser();
+        return imageRepository.findByUserProfileAndIsMainTrue(user.getProfile())
+                .map(this::mapToDTO)
+                .orElse(null);
+    }
+
+    @Transactional(readOnly = true)
     public List<UserProfileImageDTO> getUserProfileImages() {
         User user = getCurrentUser();
         return imageRepository.findByUserProfileOrderByDisplayOrderAsc(user.getProfile())
