@@ -20,16 +20,45 @@ public class ImageController {
 
     private final ImageService imageService;
 
-    @GetMapping("/profile-image")
-    public ResponseEntity<UserProfileImageDTO> getProfileImage() {
+    /**
+     * Zdjęcie profilowe zalogowanego użytkownika.
+     * @return DTO zdjęcia profilowego.
+     */
+    @GetMapping("/main")
+    public ResponseEntity<UserProfileImageDTO> getCurrentUserProfileImage() {
         return ResponseEntity.ok(imageService.getCurrentUserProfileImage());
     }
 
-    @GetMapping
-    public ResponseEntity<List<UserProfileImageDTO>> getUserProfileImages() {
+    /**
+     * Lista wszystkich zdjęć zalogowanego użytkownika.
+     * @return Lista z DTO zdjęć użytkownika.
+     */
+    @GetMapping("/all")
+    public ResponseEntity<List<UserProfileImageDTO>> getCurrentUserProfileImages() {
         return ResponseEntity.ok(imageService.getUserProfileImages());
     }
 
+    /**
+     * Zdjęcie profilowe użytkownika o podanym ID.
+     * @return DTO zdjęcia profilowego.
+     */
+    @GetMapping("/user/{userId}/main")
+    public ResponseEntity<UserProfileImageDTO> getUserProfileImage(@PathVariable Long userId) {
+        return ResponseEntity.ok(imageService.getUserProfileImageById(userId));
+    }
+
+    /**
+     * Lista wszystkich zdjęć użytkownika o podanym ID.
+     * @return Lista z DTO zdjęć użytkownika.
+     */
+    @GetMapping("/user/{userId}/all")
+    public ResponseEntity<List<UserProfileImageDTO>> getUserProfileImages(@PathVariable Long userId) {
+        return ResponseEntity.ok(imageService.getUserImagesById(userId));
+    }
+
+    /**
+     * Wgrywanie zdjęcia.
+     */
     @PostMapping
     public ResponseEntity<?> uploadProfileImage(@RequestParam("file") MultipartFile file) {
         try {
@@ -43,6 +72,9 @@ public class ImageController {
         }
     }
 
+    /**
+     * Usuwanie zdjęcia.
+     */
     @DeleteMapping("/{imageId}")
     public ResponseEntity<?> deleteProfileImage(@PathVariable Long imageId) {
         try {
@@ -54,11 +86,6 @@ public class ImageController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Nie udało się usunąć zdjęcia: " + e.getMessage());
         }
-    }
-
-    @GetMapping("/profile")
-    public ResponseEntity<UserProfileImageDTO> getUserProfileImage() {
-        return ResponseEntity.ok(imageService.getCurrentUserProfileImage());
     }
 
     @PostMapping("/{imageId}/crop")

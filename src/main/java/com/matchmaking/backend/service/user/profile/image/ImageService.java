@@ -30,6 +30,11 @@ public class ImageService {
 
     private static final int MAX_IMAGES_PER_USER = 10;
 
+    // Metody pobierania zdjęć zalogowanego użytkownika
+    /**
+     * Pobiera główne zdjęcie z profilu aktualnie zalogowanego użytkownika.
+     * @return DTO głównego zdjęcia zalogowanego użytkownika lub null, jeśli nie ma takiego zdjęcia.
+     */
     @Transactional(readOnly = true)
     public UserProfileImageDTO getCurrentUserProfileImage() {
         User user = getCurrentUser();
@@ -38,9 +43,41 @@ public class ImageService {
                 .orElse(null);
     }
 
+    /**
+     * Pobiera listę zdjęć z profilu aktualnie zalogowanego użytkownika.
+     * @return Lista DTO zdjęć profilu zalogowanego użytkownika.
+     */
     @Transactional(readOnly = true)
     public List<UserProfileImageDTO> getUserProfileImages() {
         User user = getCurrentUser();
+        return imageRepository.findByUserProfileOrderByDisplayOrderAsc(user.getProfile())
+                .stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    // Metody pobierania zdjęć użytkownika po ID
+    /**
+     * Pobiera główne zdjęcie użytkownika o podanym <strong>ID</strong>.
+     * @param userId ID użytkownika.
+     * @return DTO głównego zdjęcia użytkownika o podanym ID lub null, jeśli nie ma takiego zdjęcia.
+     */
+    @Transactional(readOnly = true)
+    public UserProfileImageDTO getUserProfileImageById(Long userId) {
+        User user = userService.getUserById(userId);
+        return imageRepository.findByUserProfileAndIsMainTrue(user.getProfile())
+                .map(this::mapToDTO)
+                .orElse(null);
+    }
+
+    /**
+     * Pobiera listę zdjęć z profilu użytkownika o podanym ID.
+     * @param userId ID użytkownika.
+     * @return Lista DTO zdjęć profilu użytkownika o podanym ID.
+     */
+    @Transactional(readOnly = true)
+    public List<UserProfileImageDTO> getUserImagesById(Long userId) {
+        User user = userService.getUserById(userId);
         return imageRepository.findByUserProfileOrderByDisplayOrderAsc(user.getProfile())
                 .stream()
                 .map(this::mapToDTO)

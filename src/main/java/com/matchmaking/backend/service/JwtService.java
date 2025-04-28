@@ -12,8 +12,15 @@ import java.util.Date;
 @Service
 public class JwtService {
 
+    // Secret key for signing the JWT. In a real application, this should be stored securely.
     private final String SECRET_KEY = "securesecuresecuresecuresecuresecuresecuresecure";
 
+    /**
+     * Generates a JWT token for the given username.
+     *
+     * @param username the username to include in the token
+     * @return the generated JWT token
+     */
     public String generateToken(String username) {
         return Jwts.builder()
                 .subject(username)
@@ -23,6 +30,12 @@ public class JwtService {
                 .compact();
     }
 
+    /**
+     * Extracts the username from the given JWT token.
+     *
+     * @param token the JWT token
+     * @return the username extracted from the token
+     */
     public String extractUsername(String token) {
         return Jwts.parser()
                 .setSigningKey(SECRET_KEY.getBytes())
@@ -32,7 +45,12 @@ public class JwtService {
                 .getSubject();
     }
 
-
+    /**
+     * Validates the given JWT token.
+     *
+     * @param token the JWT token to validate
+     * @return `true` if the token is <b>valid</b>, `false` otherwise
+     */
     public boolean validateToken(String token) {
         try {
             extractUsername(token);

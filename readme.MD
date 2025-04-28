@@ -52,6 +52,27 @@ Zapewnia ciągłą numerację od 0 do n-1
 
 # Services
 
+## `IdEncryptionService`
+
+Serwis do szyfrowania i deszyfrowania identyfikatorów.
+
+### Metody
+#### `encryptId(Long id)`
+
+Szyfruje ID użytkownika do publicznego ID
+##### Param 
+`id` ID użytkownika
+##### Return
+publiczne ID
+
+#### `decryptId(String publicId)`
+
+Deszyfruje publiczne ID do faktycznego ID użytkownika
+@param publicId publiczne ID
+@return ID użytkownika
+
+###
+
 ## `UserProfileSectionAdminService`
 
 Serwis zarządzający logiką biznesową definicji sekcji profilu.

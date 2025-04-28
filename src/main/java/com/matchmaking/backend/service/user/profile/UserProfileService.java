@@ -1,92 +1,130 @@
 package com.matchmaking.backend.service.user.profile;
 
 import com.matchmaking.backend.model.*;
+import com.matchmaking.backend.model.user.profile.UserProfileContextDTO;
 import com.matchmaking.backend.service.UserService;
-import com.matchmaking.backend.service.user.profile.section.UserProfileSectionInitializerService;
-import com.matchmaking.backend.model.user.profile.section.UserProfileSectionDefinition;
 import com.matchmaking.backend.repository.UserProfileRepository;
-import com.matchmaking.backend.repository.UserProfileSectionDefinitionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-
 @Service
 @RequiredArgsConstructor
 public class UserProfileService {
 
     private final UserService userService;
+    private final UserProfileContextService userProfileContextService;
     private final UserProfileRepository userProfileRepository;
-    private final UserProfileSectionInitializerService sectionInitializerService;
-    private final UserProfileSectionDefinitionRepository sectionDefinitionRepository;
 
-    @Transactional
-    public void initializeProfileSections(UserProfile userProfile) {
-        List<UserProfileSectionDefinition> definitions =
-                sectionDefinitionRepository.findAllByVisibleTrueOrderByDisplayOrderAsc();
-        sectionInitializerService.initializeProfileSections(userProfile, definitions);
-    }
-
-    public UserProfileRequestDTO getCurrentUserProfile() {
-        // Pobierz zalogowanego użytkownika
+    /**
+     Pobiera profil zalogowanego użytkownika
+     @return Profil użytkownika
+     */
+    @Transactional(readOnly = true)
+    public UserProfileDTO getCurrentUserProfile() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userService.getUserByEmail(email);
-        UserProfile profile = user.getProfile();
+        return mapToDTO(user.getProfile());
+    }
 
-        // Konwersja do DTO
-        UserProfileRequestDTO dto = new UserProfileRequestDTO();
+    /**
+     Pobiera profil użytkownika po ID
+     @param userId ID użytkownika
+     @return Profil użytkownika
+     */
+    @Transactional(readOnly = true)
+    public UserProfileDTO getUserProfileById(Long userId) {
+        User user = userService.getUserById(userId);
+        return mapToDTO(user.getProfile());
+    }
+
+    /**
+     Zaktualizuj profil
+     @param profileDTO Zaktualizowany profil
+     @return ResponseEntity z komunikatem o powodzeniu
+     */
+    @Transactional
+    public ResponseEntity<?> updateUserProfile(UserProfileDTO profileDTO) {
+        UserProfile profile = getAuthenticatedUserProfile();
+        updateProfileFields(profile, profileDTO);
+        userProfileRepository.save(profile);
+        return ResponseEntity.ok("Profil został zaktualizowany");
+    }
+
+    /**
+     Zaktualizuj profil, jeśli użytkownik ma uprawnienia do edycji
+     @param profileDTO Zaktualizowany profil
+     @param userId ID użytkownika
+     @return ResponseEntity z komunikatem o powodzeniu
+     */
+    public ResponseEntity<?> updateUserProfile(UserProfileDTO profileDTO, Long userId) {
+        // Pobierz kontekst uprawnień do profilu
+        UserProfileContextDTO context = userProfileContextService.getProfileContext(userId);
+            if (!context.isEditable()) {
+            return ResponseEntity.status(403).body("Brak uprawnień do edycji tego profilu");
+        }
+        User user = userService.getUserById(userId);
+        UserProfile profile = user.getProfile();
+        updateProfileFields(profile, profileDTO);
+            userProfileRepository.save(profile);
+            return ResponseEntity.ok("Profil został zaktualizowany");
+    }
+
+    /**
+     Zaktualizuj profil użytkownika przez administratora
+     @param profileDTO Zaktualizowany profil
+     @return ResponseEntity z komunikatem o powodzeniu
+     @throws RuntimeException Jeśli profil użytkownika nie został znaleziony
+     */
+    @Transactional
+    public ResponseEntity<?> updateUserProfileByAdmin(UserProfileDTO profileDTO, Long userId) {
+        UserProfile profile = userProfileRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Nie znaleziono profilu użytkownika"));
+        updateProfileFields(profile, profileDTO);
+        userProfileRepository.save(profile);
+        return ResponseEntity.ok("Profil został zaktualizowany przez administratora");
+    }
+
+    /**
+     Zwraca profil użytkownika na podstawie kontekstu bezpieczeństwa
+     @return Profil użytkownika
+     */
+    private UserProfile getAuthenticatedUserProfile() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userService.getUserByEmail(email);
+        return user.getProfile();
+    }
+
+    private UserProfileDTO mapToDTO(UserProfile profile) {
+        UserProfileDTO dto = new UserProfileDTO();
+        //dto.setUserId(profile.getUser().getId());
         dto.setFirstName(profile.getFirstName());
         dto.setLastName(profile.getLastName());
         dto.setGender(profile.getGender());
         dto.setDateOfBirth(profile.getDateOfBirth());
         dto.setBio(profile.getBio());
 
+        // Dodaj URL zdjęcia profilowego, jeśli istnieje
+//        Optional<UserProfileImage> mainImage = imageRepository.findByUserProfileAndIsMainTrue(profile);
+//        mainImage.ifPresent(image ->
+//                dto.setProfileImageUrl(image.getProfileImageUrl() != null ?
+//                        image.getProfileImageUrl() : image.getImageUrl())
+//        );
         return dto;
     }
 
-//    @Transactional
-//    public UserProfile createUserProfile(User user, String firstName, String lastName) {
-//        userProfileCreatorService.createUserProfile(
-//                user,
-//                firstName,
-//                lastName
-//        );
-//
-//        UserProfile userProfile = new UserProfile();
-//        userProfile.setUser(user);
-//        userProfile.setFirstName("");
-//        userProfile.setLastName("");
-//        userProfile.setDateOfBirth(null);
-//        userProfile.setBio("");
-//
-//        // Inicjalizacja sekcji profilu
-//        initializeProfileSections(userProfile);
-//
-//        // Zapisz profil użytkownika
-//        userProfileRepository.save(userProfile);
-//
-//        return userProfile;
-//    }
-
-    @Transactional
-    public ResponseEntity<?> updateUserProfile(UserProfileRequestDTO profileDTO) {
-        // Pobierz zalogowanego użytkownika
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userService.getUserByEmail(email);
-        UserProfile profile = user.getProfile();
-
-        // Aktualizacja danych profilu
-        profile.setFirstName(profileDTO.getFirstName());
-        profile.setLastName(profileDTO.getLastName());
-        profile.setGender(profileDTO.getGender());
-        profile.setDateOfBirth(profileDTO.getDateOfBirth());
-        profile.setBio(profileDTO.getBio());
-
-        userProfileRepository.save(profile);
-
-        return ResponseEntity.ok("Profil został zaktualizowany");
+    /**
+     Uaktualnia pola profilu na podstawie danych z DTO
+     @param profile Profil użytkownika
+     @param dto Zaktualizowane dane profilu
+     */
+    private void updateProfileFields(UserProfile profile, UserProfileDTO dto) {
+        profile.setFirstName(dto.getFirstName());
+        profile.setLastName(dto.getLastName());
+        profile.setGender(dto.getGender());
+        profile.setDateOfBirth(dto.getDateOfBirth());
+        profile.setBio(dto.getBio());
     }
 }
