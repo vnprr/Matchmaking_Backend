@@ -19,18 +19,18 @@ public class UserProfileContextService {
 
     /**
      * Sprawdza kontekst dostępu do profilu użytkownika o podanym ID
-     * @param profileUserId ID użytkownika, którego profil jest sprawdzany
+     * @param userId ID użytkownika, którego profil jest sprawdzany
      * @return DTO z informacjami o uprawnieniach
      */
     @Transactional(readOnly = true)
-    public UserProfileContextDTO getProfileContext(Long profileUserId) {
+    public UserProfileContextDTO getProfileContext(Long userId) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String email = auth.getName();
 
         // Użytkownik niezalogowany
         if ("anonymousUser".equals(email)) {
             return UserProfileContextDTO.builder()
-                    .userId(profileUserId)
+                    .userId(userId)
                     .editable(false)
                     .viewable(false)
                     .build();
@@ -39,18 +39,22 @@ public class UserProfileContextService {
         User currentUser = userService.getUserByEmail(email);
 
         // Właściciel profilu
-        boolean isOwner = currentUser.getId().equals(profileUserId);
+        boolean isOwner = currentUser.getId().equals(userId);
 
         // Administrator
         boolean isAdmin = currentUser.getRole() == Role.ADMIN;
 
         return UserProfileContextDTO.builder()
-                .userId(profileUserId)
+                .userId(userId)
                 .editable(isOwner || isAdmin)
                 .viewable(true)
                 .build();
     }
 
+    /**
+     * Sprawdza kontekst dostępu do profilu zalogowanego użytkownika
+     * @return DTO z informacjami o uprawnieniach
+     */
     public UserProfileContextDTO getCurrentUserProfileContext() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String email = auth.getName();
@@ -72,5 +76,26 @@ public class UserProfileContextService {
                 .editable(true)
                 .viewable(true)
                 .build();
+    }
+
+    /**
+     * Sprawdza, czy zalogowany użytkownik ma uprawnienia do edytowania profilu użytkowika o podanym ID
+     * @param userId ID użytkownika, którego profil jest sprawdzany
+     * @return true, jeśli użytkownik ma uprawnienia do edytowania profilu, false w przeciwnym razie
+     */
+    public boolean canEdit(Long userId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+
+        if ("anonymousUser".equals(email)) {
+            return false;
+        }
+
+        User currentUser = userService.getUserByEmail(email);
+
+        boolean isOwner = currentUser.getId().equals(userId);
+        boolean isAdmin = currentUser.getRole() == Role.ADMIN;
+
+        return isOwner || isAdmin;
     }
 }

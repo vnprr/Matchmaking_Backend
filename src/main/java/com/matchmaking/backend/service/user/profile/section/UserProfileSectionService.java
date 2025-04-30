@@ -8,8 +8,10 @@ import com.matchmaking.backend.model.user.profile.section.UserProfileSectionDefi
 import com.matchmaking.backend.repository.UserProfileSectionContentRepository;
 import com.matchmaking.backend.repository.UserProfileSectionDefinitionRepository;
 import com.matchmaking.backend.service.UserService;
+import com.matchmaking.backend.service.user.profile.UserProfileContextService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +26,7 @@ public class UserProfileSectionService {
     private final UserService userService;
     private final UserProfileSectionDefinitionRepository sectionDefinitionRepository;
     private final UserProfileSectionContentRepository sectionContentRepository;
+    private final UserProfileContextService contextService;
 
     /**
      * Pobiera wszystkie dostępne sekcje profilu wraz z ich treścią dla bieżącego użytkownika
@@ -31,6 +34,48 @@ public class UserProfileSectionService {
     @Transactional(readOnly = true)
     public List<UserProfileSectionContentRequestDTO> getUserProfileSections() {
         User user = getCurrentUser();
+        UserProfile profile = user.getProfile();
+
+        // Pobierz wszystkie widoczne definicje sekcji
+        List<UserProfileSectionDefinition> definitions =
+                sectionDefinitionRepository.findAllByVisibleTrueOrderByDisplayOrderAsc();
+
+        // Pobierz istniejące treści sekcji użytkownika
+        List<UserProfileSectionContent> existingContents =
+                sectionContentRepository.findByUserProfile(profile);
+
+        // Przygotuj DTO dla każdej sekcji
+        List<UserProfileSectionContentRequestDTO> result = new ArrayList<>();
+
+        for (UserProfileSectionDefinition def : definitions) {
+            UserProfileSectionContentRequestDTO dto = new UserProfileSectionContentRequestDTO();
+            dto.setSectionId(def.getId()); // Używamy tylko istniejącego ID sekcji
+            dto.setSectionName(def.getName());
+            dto.setRequired(def.isRequired());
+
+            // Szukaj treści dla tej sekcji
+            Optional<UserProfileSectionContent> contentOpt = existingContents.stream()
+                    .filter(c -> c.getSectionDefinition().getId().equals(def.getId()))
+                    .findFirst();
+
+            dto.setContent(contentOpt.map(UserProfileSectionContent::getContent).orElse(""));
+
+            result.add(dto);
+        }
+
+        return result;
+    }
+    
+    /**
+     * Pobiera sekcję profilu użytkownika po ID
+     */
+    public List<UserProfileSectionContentRequestDTO> getUserProfileSections(Long userId) {
+
+        if (!contextService.canEdit(userId)) {
+            throw new IllegalArgumentException("Nie masz uprawnień do edytowania tego profilu");
+        }
+
+        User user = userService.getUserById(userId);
         UserProfile profile = user.getProfile();
 
         // Pobierz wszystkie widoczne definicje sekcji
