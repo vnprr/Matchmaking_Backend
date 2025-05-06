@@ -26,13 +26,13 @@ public class UserProfileController {
 
     /**
      Pobierz profil użytkownika po ID
-     @param userId ID użytkownika
+     @param userProfileId ID użytkownika
      @return DTO profilu użytkownika
      */
-    @GetMapping("/{userId}")
-    public ResponseEntity<UserProfileDTO> getUserProfile(@PathVariable Long userId) {
+    @GetMapping("/{userProfileId}")
+    public ResponseEntity<UserProfileDTO> getUserProfile(@PathVariable Long userProfileId) {
         // Long userId = idEncryptionService.decryptId(publicId);
-        return ResponseEntity.ok(userProfileService.getUserProfileById(userId));
+        return ResponseEntity.ok(userProfileService.getProfileById(userProfileId));
     }
 
     /**
@@ -41,18 +41,18 @@ public class UserProfileController {
      */
     @PutMapping("/me")
     public ResponseEntity<?> updateCurrentUserProfile(@RequestBody UserProfileDTO profileDTO) {
-        return userProfileService.updateUserProfile(profileDTO);
+        return userProfileService.updateCurrentUserProfile(profileDTO);
     }
 
     /**
      Zaktualizuj profil użytkownika po ID
-     @param userId ID użytkownika
+     @param userProfileId ID użytkownika
      @return ResponseEntity z komunikatem o powodzeniu
      */
-    @PutMapping("/{userId}")
+    @PutMapping("/{userProfileId}")
     public ResponseEntity<?> updateUserProfile(
-            @PathVariable Long userId,
+            @PathVariable Long userProfileId,
             @RequestBody UserProfileDTO profileDTO) {
-       return userProfileService.updateUserProfile(profileDTO, userId);
+       return userProfileService.updateUserProfile(profileDTO, userProfileId);
     }
 }

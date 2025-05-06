@@ -5,10 +5,12 @@ import com.matchmaking.backend.model.user.profile.section.UserProfileSectionCont
 import com.matchmaking.backend.model.user.profile.section.UserProfileSectionContentRequestDTO;
 import com.matchmaking.backend.model.user.profile.section.UserProfileSectionContentChangeDTO;
 import com.matchmaking.backend.model.user.profile.section.UserProfileSectionDefinition;
+import com.matchmaking.backend.repository.UserProfileRepository;
 import com.matchmaking.backend.repository.UserProfileSectionContentRepository;
 import com.matchmaking.backend.repository.UserProfileSectionDefinitionRepository;
 import com.matchmaking.backend.service.UserService;
 import com.matchmaking.backend.service.user.profile.UserProfileContextService;
+import io.jsonwebtoken.impl.security.EdwardsCurve;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.parameters.P;
@@ -27,6 +29,8 @@ public class UserProfileSectionService {
     private final UserProfileSectionDefinitionRepository sectionDefinitionRepository;
     private final UserProfileSectionContentRepository sectionContentRepository;
     private final UserProfileContextService contextService;
+    private final UserProfileRepository userProfileRepository;
+
 
     /**
      * Pobiera wszystkie dostępne sekcje profilu wraz z ich treścią dla bieżącego użytkownika
@@ -65,18 +69,19 @@ public class UserProfileSectionService {
 
         return result;
     }
-    
-    /**
-     * Pobiera sekcję profilu użytkownika po ID
-     */
-    public List<UserProfileSectionContentRequestDTO> getUserProfileSections(Long userId) {
 
-        if (!contextService.canEdit(userId)) {
+    /**
+     * Pobiera sekcję profilu użytkownika po ID profilu
+     * @param userProfileId ID profilu użytkownika
+     */
+    public List<UserProfileSectionContentRequestDTO> getUserProfileSections(Long userProfileId) {
+
+        if (!contextService.canEdit(userProfileId)) {
             throw new IllegalArgumentException("Nie masz uprawnień do edytowania tego profilu");
         }
 
-        User user = userService.getUserById(userId);
-        UserProfile profile = user.getProfile();
+        UserProfile profile = userProfileRepository.findById(userProfileId)
+                .orElseThrow(() -> new IllegalArgumentException("Profil o podanym ID nie istnieje"));
 
         // Pobierz wszystkie widoczne definicje sekcji
         List<UserProfileSectionDefinition> definitions =

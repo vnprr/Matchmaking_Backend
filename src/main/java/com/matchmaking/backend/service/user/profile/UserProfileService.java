@@ -30,14 +30,15 @@ public class UserProfileService {
     }
 
     /**
-     Pobiera profil użytkownika po ID
-     @param userId ID użytkownika
+     Pobiera profil użytkownika po ID profilu
+     @param profileId ID profilu użytkownika
      @return Profil użytkownika
      */
     @Transactional(readOnly = true)
-    public UserProfileDTO getUserProfileById(Long userId) {
-        User user = userService.getUserById(userId);
-        return mapToDTO(user.getProfile());
+    public UserProfileDTO getProfileById(Long profileId) {
+        UserProfile profile = userProfileRepository.findById(profileId)
+                .orElseThrow(() -> new IllegalArgumentException("Profil o podanym ID nie istnieje"));
+        return mapToDTO(profile);
     }
 
     /**
@@ -46,7 +47,7 @@ public class UserProfileService {
      @return ResponseEntity z komunikatem o powodzeniu
      */
     @Transactional
-    public ResponseEntity<?> updateUserProfile(UserProfileDTO profileDTO) {
+    public ResponseEntity<?> updateCurrentUserProfile(UserProfileDTO profileDTO) {
         UserProfile profile = getAuthenticatedUserProfile();
         updateProfileFields(profile, profileDTO);
         userProfileRepository.save(profile);
@@ -56,20 +57,21 @@ public class UserProfileService {
     /**
      Zaktualizuj profil, jeśli użytkownik ma uprawnienia do edycji
      @param profileDTO Zaktualizowany profil
-     @param userId ID użytkownika
+     @param profileId ID użytkownika
      @return ResponseEntity z komunikatem o powodzeniu
      */
-    public ResponseEntity<?> updateUserProfile(UserProfileDTO profileDTO, Long userId) {
-        // Pobierz kontekst uprawnień do profilu
-        UserProfileContextDTO context = userProfileContextService.getProfileContext(userId);
-            if (!context.isEditable()) {
+    @Transactional
+    public ResponseEntity<?> updateUserProfile(UserProfileDTO profileDTO, Long profileId) {
+        if (!userProfileContextService.canEdit(profileId)) {
             return ResponseEntity.status(403).body("Brak uprawnień do edycji tego profilu");
         }
-        User user = userService.getUserById(userId);
-        UserProfile profile = user.getProfile();
+
+        UserProfile profile = userProfileRepository.findById(profileId)
+                .orElseThrow(() -> new IllegalArgumentException("Profil o podanym ID nie istnieje"));
+
         updateProfileFields(profile, profileDTO);
-            userProfileRepository.save(profile);
-            return ResponseEntity.ok("Profil został zaktualizowany");
+        userProfileRepository.save(profile);
+        return ResponseEntity.ok("Profil został zaktualizowany");
     }
 
     /**

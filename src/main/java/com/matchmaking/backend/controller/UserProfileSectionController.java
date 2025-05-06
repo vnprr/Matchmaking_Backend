@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/profile")
+@RequestMapping("/api/profile/sections")
 @RequiredArgsConstructor
 public class UserProfileSectionController {
 
@@ -23,7 +23,7 @@ public class UserProfileSectionController {
      * Pobierz sekcje profilu obecnego użytkownika
      * @return Lista sekcji profilu użytkownika
      */
-    @GetMapping("/me/sections")
+    @GetMapping("/me")
     public ResponseEntity<List<UserProfileSectionContentRequestDTO>> getCurrentUserProfileSections() {
         return ResponseEntity.ok(sectionService.getUserProfileSections());
     }
@@ -33,7 +33,7 @@ public class UserProfileSectionController {
      * @param sectionId ID sekcji @param content
      * @return Lista sekcji profilu użytkownika
      */
-    @PutMapping("/me/sections/{sectionId}")
+    @PutMapping("/me/{sectionId}")
     public ResponseEntity<?> updateCurrentUserProfileSection(
             @PathVariable Long sectionId,
             @RequestBody String content) {
@@ -45,7 +45,15 @@ public class UserProfileSectionController {
         }
     }
 
-//    @PutMapping("/me/sections")
+    // Po ID użytkownika:
+    @GetMapping("/{userId}")
+    public ResponseEntity<List<UserProfileSectionContentRequestDTO>> getUserProfileSections(
+            @PathVariable Long userId
+    ) {
+        return ResponseEntity.ok(sectionService.getUserProfileSections(userId));
+    }
+
+    //    @PutMapping("/me/sections")
 //    public ResponseEntity<?> updateCurrentUserProfileSections(
 //            @RequestBody List<UserProfileSectionContentChangeDTO> sections
 //    ) {
@@ -56,14 +64,6 @@ public class UserProfileSectionController {
 //            return ResponseEntity.badRequest().body(e.getMessage());
 //        }
 //    }
-
-    // Po ID użytkownika:
-    @GetMapping("/{userId}/sections")
-    public ResponseEntity<List<UserProfileSectionContentRequestDTO>> getUserProfileSections(
-            @PathVariable Long userId
-    ) {
-        return ResponseEntity.ok(sectionService.getUserProfileSections(userId));
-    }
 
 //    @PutMapping("/{userId}sections/{sectionId}")
 //    public ResponseEntity<?> updateUserProfileSection(

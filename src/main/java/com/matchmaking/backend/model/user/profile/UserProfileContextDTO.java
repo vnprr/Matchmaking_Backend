@@ -1,13 +1,13 @@
 package com.matchmaking.backend.model.user.profile;
 
-import lombok.*;
+import lombok.Data;
 
 @Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class UserProfileContextDTO {
-    private Long userId;
+    private Long profileId;
     private boolean editable;
     private boolean viewable;
+    private boolean owner;
 }
+
+//private Long userId;

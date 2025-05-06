@@ -1,12 +1,12 @@
 package com.matchmaking.backend.service.user.profile;
 
-
 import com.matchmaking.backend.model.Role;
 import com.matchmaking.backend.model.User;
+import com.matchmaking.backend.model.UserProfile;
 import com.matchmaking.backend.model.user.profile.UserProfileContextDTO;
+import com.matchmaking.backend.repository.UserProfileRepository;
 import com.matchmaking.backend.service.UserService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,86 +16,72 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserProfileContextService {
 
     private final UserService userService;
+    private final UserProfileRepository userProfileRepository;
 
     /**
-     * Sprawdza kontekst dostępu do profilu użytkownika o podanym ID
-     * @param userId ID użytkownika, którego profil jest sprawdzany
-     * @return DTO z informacjami o uprawnieniach
+     * Pobiera kontekst profilu dla danego ID profilu
+     * @param profileId ID profilu
+     * @return kontekst profilu (informacje o dostępie)
      */
     @Transactional(readOnly = true)
-    public UserProfileContextDTO getProfileContext(Long userId) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String email = auth.getName();
+    public UserProfileContextDTO getProfileContext(Long profileId) {
+        // Pobierz bieżącego użytkownika
+        String currentUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userService.getUserByEmail(currentUserEmail);
 
-        // Użytkownik niezalogowany
-        if ("anonymousUser".equals(email)) {
-            return UserProfileContextDTO.builder()
-                    .userId(userId)
-                    .editable(false)
-                    .viewable(false)
-                    .build();
-        }
+        // Pobierz profil
+        UserProfile profile = userProfileRepository.findById(profileId)
+                .orElseThrow(() -> new IllegalArgumentException("Profil o podanym ID nie istnieje"));
 
-        User currentUser = userService.getUserByEmail(email);
+        UserProfileContextDTO context = new UserProfileContextDTO();
+        context.setProfileId(profile.getId());
+        //context.setUserId(profile.getUser().getId());
 
-        // Właściciel profilu
-        boolean isOwner = currentUser.getId().equals(userId);
-
-        // Administrator
+        // Użytkownik może edytować profil, jeśli jest jego właścicielem lub administratorem
+        boolean isOwner = profile.getUser().getId().equals(currentUser.getId());
         boolean isAdmin = currentUser.getRole() == Role.ADMIN;
 
-        return UserProfileContextDTO.builder()
-                .userId(userId)
-                .editable(isOwner || isAdmin)
-                .viewable(true)
-                .build();
+        context.setEditable(isOwner || isAdmin);
+        context.setOwner(isOwner);
+        context.setViewable(true);
+
+        return context;
     }
 
     /**
-     * Sprawdza kontekst dostępu do profilu zalogowanego użytkownika
-     * @return DTO z informacjami o uprawnieniach
+     * Pobiera kontekst profilu dla bieżącego użytkownika
+     * @return kontekst profilu (informacje o dostępie)
      */
+    @Transactional
     public UserProfileContextDTO getCurrentUserProfileContext() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String email = auth.getName();
+        // Pobierz bieżącego użytkownika
+        String currentUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userService.getUserByEmail(currentUserEmail);
 
-        // Użytkownik niezalogowany
-        if ("anonymousUser".equals(email)) {
-            return UserProfileContextDTO.builder()
-                    .userId(null)
-                    .editable(false)
-                    .viewable(false)
-                    .build();
-        }
+        // Pobierz profil
+        UserProfile profile = userProfileRepository.findById(currentUser.getProfile().getId())
+                .orElseThrow(() -> new IllegalArgumentException("Profil o podanym ID nie istnieje"));
 
-        User currentUser = userService.getUserByEmail(email);
-
-        // Właściciel profilu
-        return UserProfileContextDTO.builder()
-                .userId(currentUser.getId())
-                .editable(true)
-                .viewable(true)
-                .build();
+        return getProfileContext(profile.getId());
     }
 
     /**
-     * Sprawdza, czy zalogowany użytkownik ma uprawnienia do edytowania profilu użytkowika o podanym ID
-     * @param userId ID użytkownika, którego profil jest sprawdzany
-     * @return true, jeśli użytkownik ma uprawnienia do edytowania profilu, false w przeciwnym razie
+     * Sprawdza, czy bieżący użytkownik może edytować profil o danym ID
+     * @param profileId ID profilu
+     * @return true, jeśli użytkownik może edytować profil
      */
-    public boolean canEdit(Long userId) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String email = auth.getName();
+    @Transactional(readOnly = true)
+    public boolean canEdit(Long profileId) {
+        return getProfileContext(profileId).isEditable();
+    }
 
-        if ("anonymousUser".equals(email)) {
-            return false;
-        }
-
-        User currentUser = userService.getUserByEmail(email);
-
-        boolean isOwner = currentUser.getId().equals(userId);
-        boolean isAdmin = currentUser.getRole() == Role.ADMIN;
-
-        return isOwner || isAdmin;
+    /**
+     * Sprawdza, czy bieżący użytkownik jest właścicielem profilu o danym ID
+     * @param profileId ID profilu
+     * @return true, jeśli użytkownik jest właścicielem profilu
+     */
+    @Transactional(readOnly = true)
+    public boolean isOwner(Long profileId) {
+        return getProfileContext(profileId).isOwner();
     }
 }

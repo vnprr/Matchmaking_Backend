@@ -78,8 +78,7 @@ public class UserProfileSectionInitializerService {
      */
     @Transactional
     public void deleteSectionContentForAllUsers(UserProfileSectionDefinition definition) {
-        // Dodajemy metodę findBySectionDefinition do repozytorium
-        List<UserProfileSectionContent> contents = findBySectionDefinition(definition);
+        List<UserProfileSectionContent> contents = sectionContentRepository.findBySectionDefinition(definition);
         if (!contents.isEmpty()) {
             sectionContentRepository.deleteAll(contents);
         }
