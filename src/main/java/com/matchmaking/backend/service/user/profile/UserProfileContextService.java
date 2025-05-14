@@ -84,4 +84,8 @@ public class UserProfileContextService {
     public boolean isOwner(Long profileId) {
         return getProfileContext(profileId).isOwner();
     }
+
+    public boolean canView(Long userProfileId) {
+        return true;
+    }
 }

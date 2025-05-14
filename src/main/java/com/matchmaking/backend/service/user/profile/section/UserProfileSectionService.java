@@ -76,8 +76,8 @@ public class UserProfileSectionService {
      */
     public List<UserProfileSectionContentRequestDTO> getUserProfileSections(Long userProfileId) {
 
-        if (!contextService.canEdit(userProfileId)) {
-            throw new IllegalArgumentException("Nie masz uprawnień do edytowania tego profilu");
+        if (!contextService.canView(userProfileId)) {
+            throw new IllegalArgumentException("Nie masz uprawnień do wyświetlania tego profilu");
         }
 
         UserProfile profile = userProfileRepository.findById(userProfileId)
@@ -117,7 +117,9 @@ public class UserProfileSectionService {
      * Aktualizuje treść sekcji profilu użytkownika
      */
     @Transactional
-    public void updateUserProfileSection(Long sectionId, String content) {
+    public void updateUserProfileSection(Long sectionId, UserProfileSectionContentChangeDTO sectionContentChange) {
+        String content = sectionContentChange.getContent();
+
         User user = getCurrentUser();
         UserProfile profile = user.getProfile();
 
@@ -154,12 +156,12 @@ public class UserProfileSectionService {
     /**
      * Aktualizuje wiele sekcji profilu na raz
      */
-    @Transactional
-    public void updateUserProfileSections(List<UserProfileSectionContentChangeDTO> sectionsData) {
-        for (UserProfileSectionContentChangeDTO section : sectionsData) {
-            updateUserProfileSection(section.getSectionId(), section.getContent());
-        }
-    }
+//    @Transactional
+//    public void updateUserProfileSections(List<UserProfileSectionContentChangeDTO> sectionsData) {
+//        for (UserProfileSectionContentChangeDTO section : sectionsData) {
+//            updateUserProfileSection(section.getSectionId(), section.getContent());
+//        }
+//    }
 
     private User getCurrentUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();

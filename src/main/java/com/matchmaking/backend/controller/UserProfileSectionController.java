@@ -36,9 +36,9 @@ public class UserProfileSectionController {
     @PutMapping("/me/{sectionId}")
     public ResponseEntity<?> updateCurrentUserProfileSection(
             @PathVariable Long sectionId,
-            @RequestBody String content) {
+            @RequestBody UserProfileSectionContentChangeDTO sectionContentChange) {
         try {
-            sectionService.updateUserProfileSection(sectionId, content);
+            sectionService.updateUserProfileSection(sectionId, sectionContentChange);
             return ResponseEntity.ok("Sekcja została zaktualizowana");
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -46,11 +46,11 @@ public class UserProfileSectionController {
     }
 
     // Po ID użytkownika:
-    @GetMapping("/{userId}")
+    @GetMapping("/{userProfileId}")
     public ResponseEntity<List<UserProfileSectionContentRequestDTO>> getUserProfileSections(
-            @PathVariable Long userId
+            @PathVariable Long userProfileId
     ) {
-        return ResponseEntity.ok(sectionService.getUserProfileSections(userId));
+        return ResponseEntity.ok(sectionService.getUserProfileSections(userProfileId));
     }
 
     //    @PutMapping("/me/sections")

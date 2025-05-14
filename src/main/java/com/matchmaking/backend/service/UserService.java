@@ -11,6 +11,7 @@ import com.matchmaking.backend.service.user.profile.UserProfileCreatorService;
 import com.matchmaking.backend.service.user.profile.UserProfileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -27,6 +28,12 @@ public class UserService implements UserDetailsService {
 
     private final UserRepository userRepository;
     private final UserProfileCreatorService userProfileCreatorService;
+
+    public User getCurrentUser() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+    }
 
     public User getUserByEmail(String email) throws UsernameNotFoundException {
         return userRepository.findByEmail(email)

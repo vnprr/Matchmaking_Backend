@@ -4,6 +4,5 @@ import lombok.Data;
 
 @Data
 public class UserProfileSectionContentChangeDTO {
-    private Long sectionId;
     private String content;
 }
