@@ -25,7 +25,6 @@ public class RecommendationService {
     private final UserRecommendationRepository recommendationRepository;
     private final UserService userService;
     private final NotificationService notificationService;
-    private final NotificationRepository notificationRepository;
 
     @Transactional
     public UserRecommendation createRecommendation(Long firstUserId, Long secondUserId) {

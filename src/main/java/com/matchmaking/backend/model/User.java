@@ -62,3 +62,5 @@ public class User {
     @Column
     private LocalDateTime accountLockedUntil;
 }
+
+//TODO: przerobić user na account
