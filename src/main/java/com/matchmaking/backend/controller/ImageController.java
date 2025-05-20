@@ -4,112 +4,215 @@ import com.matchmaking.backend.model.user.profile.image.ImageCropDTO;
 import com.matchmaking.backend.model.user.profile.image.UserProfileImageDTO;
 import com.matchmaking.backend.model.user.profile.image.UserProfileImageOrderDTO;
 import com.matchmaking.backend.service.user.profile.image.ImageService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.List;
+import java.io.IOException;
 
 @RestController
-@RequestMapping("/api/profile/images")
+@RequestMapping("/api/profile")
 @RequiredArgsConstructor
 public class ImageController {
 
     private final ImageService imageService;
 
-    /**
-     * Zdjęcie profilowe zalogowanego użytkownika.
-     * @return DTO zdjęcia profilowego.
-     */
-    @GetMapping("/main")
-    public ResponseEntity<UserProfileImageDTO> getCurrentUserProfileImage() {
-        return ResponseEntity.ok(imageService.getCurrentUserProfileImage());
+    @GetMapping("/me/images/main")
+    public ResponseEntity<UserProfileImageDTO> getCurrentUserMainImage() {
+        return ResponseEntity.ok(imageService.getMainProfileImage(null));
     }
 
-    /**
-     * Lista wszystkich zdjęć zalogowanego użytkownika.
-     * @return Lista z DTO zdjęć użytkownika.
-     */
-    @GetMapping("/all")
-    public ResponseEntity<List<UserProfileImageDTO>> getCurrentUserProfileImages() {
-        return ResponseEntity.ok(imageService.getUserProfileImages());
+    @GetMapping("/me/images/all")
+    public ResponseEntity<List<UserProfileImageDTO>> getCurrentUserImages() {
+        return ResponseEntity.ok(imageService.getProfileImages(null));
     }
 
-    /**
-     * Zdjęcie profilowe użytkownika o podanym ID.
-     * @return DTO zdjęcia profilowego.
-     */
-    @GetMapping("/user/{userId}/main")
-    public ResponseEntity<UserProfileImageDTO> getUserProfileImage(@PathVariable Long userId) {
-        return ResponseEntity.ok(imageService.getUserProfileImageById(userId));
+    @GetMapping("/{profileId}/images/main")
+    public ResponseEntity<UserProfileImageDTO> getProfileMainImage(@PathVariable Long profileId) {
+        return ResponseEntity.ok(imageService.getMainProfileImage(profileId));
     }
 
-    /**
-     * Lista wszystkich zdjęć użytkownika o podanym ID.
-     * @return Lista z DTO zdjęć użytkownika.
-     */
-    @GetMapping("/user/{userId}/all")
-    public ResponseEntity<List<UserProfileImageDTO>> getUserProfileImages(@PathVariable Long userId) {
-        return ResponseEntity.ok(imageService.getUserImagesById(userId));
+    @GetMapping("/{profileId}/images/all")
+    public ResponseEntity<List<UserProfileImageDTO>> getProfileImages(@PathVariable Long profileId) {
+        return ResponseEntity.ok(imageService.getProfileImages(profileId));
     }
 
-    /**
-     * Wgrywanie zdjęcia.
-     */
-    @PostMapping
-    public ResponseEntity<?> uploadProfileImage(@RequestParam("file") MultipartFile file) {
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> uploadImage(@RequestParam("file") MultipartFile file) {
         try {
-            UserProfileImageDTO imageDTO = imageService.uploadProfileImage(file);
-            return ResponseEntity.ok(imageDTO);
+            UserProfileImageDTO result = imageService.uploadImage(file);
+            return ResponseEntity.status(HttpStatus.CREATED).body(result);
         } catch (IllegalStateException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Nie udało się wgrać zdjęcia: " + e.getMessage());
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Błąd podczas wgrywania zdjęcia: " + e.getMessage());
         }
     }
 
-    /**
-     * Usuwanie zdjęcia.
-     */
-    @DeleteMapping("/{imageId}")
-    public ResponseEntity<?> deleteProfileImage(@PathVariable Long imageId) {
+    @PostMapping("/images/{imageId}/crop")
+    public ResponseEntity<?> cropImage(@PathVariable Long imageId, @Valid @RequestBody ImageCropDTO cropDTO) {
         try {
-            imageService.deleteProfileImage(imageId);
-            return ResponseEntity.ok("Zdjęcie zostało usunięte");
-        } catch (IllegalArgumentException | IllegalStateException e) {
+            UserProfileImageDTO result = imageService.cropImage(imageId, cropDTO);
+            return ResponseEntity.ok(result);
+        } catch (IllegalStateException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Nie udało się usunąć zdjęcia: " + e.getMessage());
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Błąd podczas przycinania zdjęcia: " + e.getMessage());
         }
     }
 
-    @PostMapping("/{imageId}/crop")
-    public ResponseEntity<?> cropProfileImage(
-            @PathVariable Long imageId,
-            @RequestBody ImageCropDTO cropDTO) {
+    @PatchMapping("/images/{imageId}/main")
+    public ResponseEntity<?> setMainImage(@PathVariable Long imageId) {
         try {
-            UserProfileImageDTO imageDTO = imageService.cropAndSetProfileImage(imageId, cropDTO);
-            return ResponseEntity.ok(imageDTO);
-        } catch (IllegalArgumentException | IllegalStateException e) {
+            UserProfileImageDTO result = imageService.setMainImage(imageId);
+            return ResponseEntity.ok(result);
+        } catch (IllegalStateException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Nie udało się przyciąć zdjęcia: " + e.getMessage());
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Błąd podczas ustawiania zdjęcia jako główne: " + e.getMessage());
         }
     }
 
-    @PutMapping("/order")
-    public ResponseEntity<?> updateProfileImagesOrder(@RequestBody UserProfileImageOrderDTO orderDTO) {
+    @DeleteMapping("/images/{imageId}")
+    public ResponseEntity<?> deleteImage(@PathVariable Long imageId) {
         try {
-            imageService.updateProfileImagesOrder(orderDTO);
-            return ResponseEntity.ok("Kolejność zdjęć została zaktualizowana");
-        } catch (IllegalArgumentException | IllegalStateException e) {
+            imageService.deleteImage(imageId);
+            return ResponseEntity.noContent().build();
+        } catch (IOException e) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Błąd podczas usuwania zdjęcia: " + e.getMessage());
+        }
+    }
+
+    @PutMapping("/images/order")
+    public ResponseEntity<?> updateImagesOrder(@Valid @RequestBody UserProfileImageOrderDTO orderDTO) {
+        try {
+            imageService.updateImagesOrder(orderDTO);
+            return ResponseEntity.ok().build();
+        } catch (IllegalStateException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 }
+
+//package com.matchmaking.backend.controller;
+//
+//import com.matchmaking.backend.exception.ErrorResponse;
+//import com.matchmaking.backend.model.user.profile.image.ImageCropDTO;
+//import com.matchmaking.backend.model.user.profile.image.UserProfileImageDTO;
+//import com.matchmaking.backend.model.user.profile.image.UserProfileImageOrderDTO;
+//import com.matchmaking.backend.service.user.profile.image.ImageService;
+//import jakarta.validation.Valid;
+//import lombok.RequiredArgsConstructor;
+//import org.springframework.http.HttpStatus;
+//import org.springframework.http.MediaType;
+//import org.springframework.http.ResponseEntity;
+//import org.springframework.web.bind.annotation.*;
+//import org.springframework.web.multipart.MultipartFile;
+//
+//import java.io.IOException;
+//import java.util.List;
+//
+//@RestController
+//@RequestMapping("/api/profile/images")
+//@RequiredArgsConstructor
+//public class ImageController {
+//
+//    private final ImageService imageService;
+//
+//    @GetMapping("/current/main")
+//    public ResponseEntity<UserProfileImageDTO> getCurrentUserMainImage() {
+//        return ResponseEntity.ok(imageService.getMainProfileImage(null));
+//    }
+//
+//    @GetMapping("/current/all")
+//    public ResponseEntity<List<UserProfileImageDTO>> getCurrentUserImages() {
+//        return ResponseEntity.ok(imageService.getProfileImages(null));
+//    }
+//
+//    @GetMapping("/profile/{profileId}/main")
+//    public ResponseEntity<UserProfileImageDTO> getProfileMainImage(@PathVariable Long profileId) {
+//        return ResponseEntity.ok(imageService.getMainProfileImage(profileId));
+//    }
+//
+//    @GetMapping("/profile/{profileId}/all")
+//    public ResponseEntity<List<UserProfileImageDTO>> getProfileImages(@PathVariable Long profileId) {
+//        return ResponseEntity.ok(imageService.getProfileImages(profileId));
+//    }
+//
+//    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+//    public ResponseEntity<?> uploadImage(@RequestParam("file") MultipartFile file) {
+//        try {
+//            UserProfileImageDTO result = imageService.uploadImage(file);
+//            return ResponseEntity.status(HttpStatus.CREATED).body(result);
+//        } catch (IllegalStateException e) {
+//            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
+//        } catch (IOException e) {
+//            return ResponseEntity
+//                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+//                    .body(new ErrorResponse("Błąd podczas wgrywania zdjęcia: " + e.getMessage()));
+//        }
+//    }
+//
+//    @PostMapping("/{imageId}/crop")
+//    public ResponseEntity<?> cropImage(@PathVariable Long imageId, @Valid @RequestBody ImageCropDTO cropDTO) {
+//        try {
+//            UserProfileImageDTO result = imageService.cropImage(imageId, cropDTO);
+//            return ResponseEntity.ok(result);
+//        } catch (IllegalStateException e) {
+//            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
+//        } catch (IOException e) {
+//            return ResponseEntity
+//                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+//                    .body(new ErrorResponse("Błąd podczas przycinania zdjęcia: " + e.getMessage()));
+//        }
+//    }
+//
+//    @PatchMapping("/{imageId}/main")
+//    public ResponseEntity<?> setMainImage(@PathVariable Long imageId) {
+//        try {
+//            UserProfileImageDTO result = imageService.setMainImage(imageId);
+//            return ResponseEntity.ok(result);
+//        } catch (IllegalStateException e) {
+//            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
+//        } catch (IOException e) {
+//            return ResponseEntity
+//                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+//                    .body(new ErrorResponse("Błąd podczas ustawiania zdjęcia jako główne: " + e.getMessage()));
+//        }
+//    }
+//
+//    @DeleteMapping("/{imageId}")
+//    public ResponseEntity<?> deleteImage(@PathVariable Long imageId) {
+//        try {
+//            imageService.deleteImage(imageId);
+//            return ResponseEntity.noContent().build();
+//        } catch (IOException e) {
+//            return ResponseEntity
+//                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+//                    .body(new ErrorResponse("Błąd podczas usuwania zdjęcia: " + e.getMessage()));
+//        }
+//    }
+//
+//    @PutMapping("/order")
+//    public ResponseEntity<?> updateImagesOrder(@Valid @RequestBody UserProfileImageOrderDTO orderDTO) {
+//        try {
+//            imageService.updateImagesOrder(orderDTO);
+//            return ResponseEntity.ok().build();
+//        } catch (IllegalStateException e) {
+//            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
+//        }
+//    }
+//}

@@ -1,14 +1,15 @@
-// src/main/java/com/matchmaking/backend/service/user/profile/image/CloudinaryService.java
 package com.matchmaking.backend.service.user.profile.image;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
+import com.matchmaking.backend.model.user.profile.image.ImageVersionsDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -16,81 +17,97 @@ public class CloudinaryService {
 
     private final Cloudinary cloudinary;
 
-    // Upload z optymalizacją (max 1024x1024, kompresja)
-    public Map<String, Object> uploadImage(MultipartFile file) throws IOException {
-        Map<String, Object> options = ObjectUtils.asMap(
-            "transformation", new Object[] {
+    private static final String FOLDER = "user_profiles";
+    private static final int THUMBNAIL_SIZE = 200;
+    private static final int GALLERY_WIDTH = 1024;
+    private static final int PROFILE_SIZE = 512;
+
+    /**
+     * Wgrywa zdjęcie i tworzy wszystkie potrzebne wersje
+     */
+    public ImageVersionsDTO uploadImage(MultipartFile file) throws IOException {
+        String uniqueId = UUID.randomUUID().toString();
+        String publicId = FOLDER + "/" + uniqueId;
+
+        // Wgraj oryginalny plik
+        Map<String, Object> originalResult = cloudinary.uploader().upload(file.getBytes(),
+                ObjectUtils.asMap("public_id", publicId));
+
+        // Stwórz wersję galerii
+        Map<String, Object> galleryResult = cloudinary.uploader().explicit(
+                publicId,
                 ObjectUtils.asMap(
-                    "width", 1024,
-                    "height", 1024,
-                    "crop", "limit",
-                    "quality", "auto:good",
-                    "fetch_format", "auto"
+                        "type", "upload", // Dodano "type"
+                        "transformation", ObjectUtils.asMap(
+                                "width", GALLERY_WIDTH,
+                                "crop", "limit",
+                                "quality", "auto:good",
+                                "fetch_format", "auto"
+                        )
                 )
-            }
         );
-        return cloudinary.uploader().upload(file.getBytes(), options);
+
+
+        // Stwórz miniaturę
+        Map<String, Object> thumbnailResult = cloudinary.uploader().explicit(
+                publicId,
+                ObjectUtils.asMap(
+                        "type", "upload", // Dodano "type"
+                        "transformation", ObjectUtils.asMap(
+                                "width", THUMBNAIL_SIZE,
+                                "height", THUMBNAIL_SIZE,
+                                "crop", "fill",
+                                "quality", "auto:good",
+                                "fetch_format", "auto"
+                        )
+                )
+        );
+
+        return new ImageVersionsDTO(
+                publicId,
+                (String) originalResult.get("url"),
+                (String) galleryResult.get("url"),
+                (String) thumbnailResult.get("url")
+        );
     }
 
-    // Kadrowanie i resize do 1:1, 512x512
-    public Map<String, Object> cropAndOptimizeImage(String publicId, int x, int y, int width, int height, int size) throws IOException {
-        Map<String, Object> transformation = ObjectUtils.asMap(
-            "transformation", new Object[] {
+
+    /**
+     * Kadruje zdjęcie do określonego rozmiaru kwadratu
+     */
+    public String cropToProfile(String publicId, int x, int y, int width, int height) throws IOException {
+        Map<String, Object> result = cloudinary.uploader().explicit(
+                publicId,
                 ObjectUtils.asMap(
-                    "crop", "crop",
-                    "x", x,
-                    "y", y,
-                    "width", width,
-                    "height", height,
-                    "gravity", "custom"
-                ),
-                ObjectUtils.asMap(
-                    "width", size,
-                    "height", size,
-                    "crop", "fill",
-                    "quality", "auto:good",
-                    "fetch_format", "auto"
+                        "type", "upload", // Dodano "type"
+                        "transformation", new Object[] {
+                                ObjectUtils.asMap(
+                                        "x", x,
+                                        "y", y,
+                                        "width", width,
+                                        "height", height,
+                                        "crop", "crop"
+                                ),
+                                ObjectUtils.asMap(
+                                        "width", PROFILE_SIZE,
+                                        "height", PROFILE_SIZE,
+                                        "crop", "fill",
+                                        "quality", "auto:good",
+                                        "fetch_format", "auto"
+                                )
+                        }
                 )
-            }
         );
-        return cloudinary.uploader().explicit(publicId, transformation);
+
+        return (String) result.get("url");
     }
 
+
+    /**
+     * Usuwa zdjęcie z Cloudinary
+     */
     public void deleteImage(String publicId) throws IOException {
         cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
     }
+
 }
-
-
-//package com.matchmaking.backend.service.user.profile.image;
-//
-//import com.cloudinary.Cloudinary;
-//import com.cloudinary.utils.ObjectUtils;
-//import lombok.RequiredArgsConstructor;
-//import org.springframework.stereotype.Service;
-//import org.springframework.web.multipart.MultipartFile;
-//
-//import java.io.IOException;
-//import java.util.Map;
-//
-//@Service
-//@RequiredArgsConstructor
-//public class CloudinaryService {
-//
-//    private final Cloudinary cloudinary;
-//
-//    public Map<String, Object> uploadImage(MultipartFile file) throws IOException {
-//        return cloudinary.uploader().upload(file.getBytes(), ObjectUtils.emptyMap());
-//    }
-//
-//    public void deleteImage(String publicId) throws IOException {
-//        cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
-//    }
-//
-//    public Map<String, Object> transformImage(String publicId, Map<String, Object> transformations) throws IOException {
-//        Map<String, Object> options = ObjectUtils.asMap(
-//                "transformation", transformations
-//        );
-//        return cloudinary.uploader().explicit(publicId, options);
-//    }
-//}

@@ -1,19 +1,19 @@
-// src/main/java/com/matchmaking/backend/service/user/profile/image/ImageService.java
 package com.matchmaking.backend.service.user.profile.image;
 
+import com.matchmaking.backend.exception.ResourceNotFoundException;
 import com.matchmaking.backend.model.User;
 import com.matchmaking.backend.model.UserProfile;
-import com.matchmaking.backend.model.user.profile.image.ImageCropDTO;
-import com.matchmaking.backend.model.user.profile.image.UserProfileImage;
-import com.matchmaking.backend.model.user.profile.image.UserProfileImageDTO;
-import com.matchmaking.backend.model.user.profile.image.UserProfileImageOrderDTO;
+import com.matchmaking.backend.model.user.profile.image.*;
 import com.matchmaking.backend.repository.UserProfileImageRepository;
+import com.matchmaking.backend.repository.UserProfileRepository;
 import com.matchmaking.backend.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+
 
 import java.io.IOException;
 import java.util.List;
@@ -25,173 +25,175 @@ import java.util.stream.Collectors;
 public class ImageService {
 
     private final UserService userService;
+    private final UserProfileRepository userProfileRepository;
     private final CloudinaryService cloudinaryService;
     private final UserProfileImageRepository imageRepository;
 
-    private static final int MAX_IMAGES_PER_USER = 10;
+    @Value("${app.profile.max-images:10}")
+    private int maxImagesPerUser;
 
     @Transactional(readOnly = true)
-    public UserProfileImageDTO getCurrentUserProfileImage() {
-        User user = getCurrentUser();
-        return imageRepository.findByUserProfileAndIsMainTrue(user.getProfile())
+    public UserProfileImageDTO getMainProfileImage(Long userProfileId) {
+        UserProfile profile = getUserProfileById(userProfileId);
+        return imageRepository.findByUserProfileAndIsMainTrue(profile)
                 .map(this::mapToDTO)
                 .orElse(null);
     }
 
     @Transactional(readOnly = true)
-    public List<UserProfileImageDTO> getUserProfileImages() {
-        User user = getCurrentUser();
-        return imageRepository.findByUserProfileOrderByDisplayOrderAsc(user.getProfile())
+    public List<UserProfileImageDTO> getProfileImages(Long userProfileId) {
+        UserProfile profile = getUserProfileById(userProfileId);
+        return imageRepository.findByUserProfileOrderByDisplayOrderAsc(profile)
                 .stream()
                 .map(this::mapToDTO)
-                .collect(Collectors.toList());
-    }
-
-    @Transactional(readOnly = true)
-    public UserProfileImageDTO getUserProfileImageById(Long userId) {
-        User user = userService.getUserById(userId);
-        return imageRepository.findByUserProfileAndIsMainTrue(user.getProfile())
-                .map(this::mapToDTO)
-                .orElse(null);
-    }
-
-    @Transactional(readOnly = true)
-    public List<UserProfileImageDTO> getUserImagesById(Long userId) {
-        User user = userService.getUserById(userId);
-        return imageRepository.findByUserProfileOrderByDisplayOrderAsc(user.getProfile())
-                .stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Transactional
-    public UserProfileImageDTO uploadProfileImage(MultipartFile file) throws IOException {
+    public UserProfileImageDTO uploadImage(MultipartFile file) throws IOException {
         User user = getCurrentUser();
         UserProfile profile = user.getProfile();
 
-        List<UserProfileImage> existingImages = imageRepository.findByUserProfileOrderByDisplayOrderAsc(profile);
-        if (existingImages.size() >= MAX_IMAGES_PER_USER) {
-            throw new IllegalStateException("Osiągnięto maksymalną liczbę zdjęć (" + MAX_IMAGES_PER_USER + ")");
+        // Sprawdź limit zdjęć
+        List<UserProfileImage> existingImages = imageRepository.findByUserProfile(profile);
+        if (existingImages.size() >= maxImagesPerUser) {
+            throw new IllegalStateException("Osiągnięto maksymalną liczbę zdjęć (" + maxImagesPerUser + ")");
         }
 
-        Map<String, Object> uploadResult = cloudinaryService.uploadImage(file);
+        ImageVersionsDTO versions = cloudinaryService.uploadImage(file);
 
+        // Ustal kolejność nowego zdjęcia
         Integer maxOrder = imageRepository.findMaxDisplayOrder(profile);
-        int newOrder = (maxOrder != null) ? maxOrder + 1 : 0;
+        int displayOrder = (maxOrder == null) ? 0 : maxOrder + 1;
 
-        UserProfileImage image = new UserProfileImage();
-        image.setUserProfile(profile);
-        image.setPublicId((String) uploadResult.get("public_id"));
-        image.setImageUrl((String) uploadResult.get("url"));
-        image.setMain(existingImages.isEmpty());
-        image.setDisplayOrder(newOrder);
-
-        UserProfileImage savedImage = imageRepository.save(image);
-        return mapToDTO(savedImage);
-    }
-
-    @Transactional
-    public UserProfileImageDTO cropAndSetProfileImage(Long imageId, ImageCropDTO cropDTO) throws IOException {
-        User user = getCurrentUser();
-        UserProfile profile = user.getProfile();
-
-        UserProfileImage image = imageRepository.findById(imageId)
-                .orElseThrow(() -> new IllegalArgumentException("Zdjęcie nie istnieje"));
-
-        if (!image.getUserProfile().getId().equals(profile.getId())) {
-            throw new IllegalStateException("Nie masz uprawnień do tego zdjęcia");
-        }
-
-        // Usuń stare profilowe jeśli istnieje
-        if (image.getProfileImagePublicId() != null) {
-            cloudinaryService.deleteImage(image.getProfileImagePublicId());
-        }
-
-        // Kadrowanie i optymalizacja do 1:1, 512x512 przez Cloudinary
-        Map<String, Object> croppedResult = cloudinaryService.cropAndOptimizeImage(
-                image.getPublicId(),
-                cropDTO.getX(),
-                cropDTO.getY(),
-                cropDTO.getWidth(),
-                cropDTO.getHeight(),
-                512
-        );
-
-        image.setProfileImagePublicId((String) croppedResult.get("public_id"));
-        image.setProfileImageUrl((String) croppedResult.get("url"));
-
-        // Ustaw jako główne jeśli nie jest
-        if (!image.isMain()) {
-            imageRepository.findByUserProfileAndIsMainTrue(profile)
-                    .ifPresent(currentMain -> {
-                        currentMain.setMain(false);
-                        imageRepository.save(currentMain);
-                    });
-            image.setMain(true);
-        }
+        // Zapisz w bazie danych
+        UserProfileImage image = UserProfileImage.builder()
+                .userProfile(profile)
+                .publicId(versions.getPublicId())
+                .originalUrl(versions.getOriginalUrl())
+                .galleryUrl(versions.getGalleryUrl())
+                .thumbnailUrl(versions.getThumbnailUrl())
+                .displayOrder(displayOrder)
+                .isMain(existingImages.isEmpty()) // Pierwsze zdjęcie staje się główne
+                .build();
 
         return mapToDTO(imageRepository.save(image));
     }
 
     @Transactional
-    public void deleteProfileImage(Long imageId) throws IOException {
+    public UserProfileImageDTO cropImage(Long imageId, ImageCropDTO cropDTO) throws IOException {
         User user = getCurrentUser();
-        UserProfile profile = user.getProfile();
+        UserProfileImage image = getImageAndCheckPermission(imageId, user);
 
-        UserProfileImage image = imageRepository.findById(imageId)
-                .orElseThrow(() -> new IllegalArgumentException("Zdjęcie nie istnieje"));
+        // Kadruj zdjęcie za pomocą Cloudinary
+        String profileUrl = cloudinaryService.cropToProfile(
+                image.getPublicId(),
+                cropDTO.getX(),
+                cropDTO.getY(),
+                cropDTO.getWidth(),
+                cropDTO.getHeight()
+        );
 
-        if (!image.getUserProfile().getId().equals(profile.getId())) {
-            throw new IllegalStateException("Nie masz uprawnień do tego zdjęcia");
-        }
-
-        // Usuń z Cloudinary
-        if (image.getPublicId() != null) {
-            cloudinaryService.deleteImage(image.getPublicId());
-        }
-        if (image.getProfileImagePublicId() != null) {
-            cloudinaryService.deleteImage(image.getProfileImagePublicId());
-        }
-
-        boolean wasMain = image.isMain();
-        imageRepository.delete(image);
-
-        // Jeśli usuwane było główne, ustaw inne jako główne
-        if (wasMain) {
-            List<UserProfileImage> images = imageRepository.findByUserProfileOrderByDisplayOrderAsc(profile);
-            if (!images.isEmpty()) {
-                UserProfileImage newMain = images.get(0);
-                newMain.setMain(true);
-                imageRepository.save(newMain);
-            }
-        }
-        updateImagesOrder(profile);
+        image.setProfileUrl(profileUrl);
+        return mapToDTO(imageRepository.save(image));
     }
 
     @Transactional
-    public void updateProfileImagesOrder(UserProfileImageOrderDTO orderDTO) {
+    public UserProfileImageDTO setMainImage(Long imageId) throws IOException {
+        User user = getCurrentUser();
+        UserProfile profile = user.getProfile();
+        UserProfileImage newMainImage = getImageAndCheckPermission(imageId, user);
+
+        // Jeśli obrazek nie ma jeszcze przyciętej wersji profilowej, zwróć błąd
+        if (newMainImage.getProfileUrl() == null) {
+            throw new IllegalStateException("Zdjęcie musi być najpierw przycięte, aby ustawić je jako główne");
+        }
+
+        // Zmień status aktualnego głównego zdjęcia
+        imageRepository.findByUserProfileAndIsMainTrue(profile)
+                .ifPresent(currentMain -> {
+                    currentMain.setMain(false);
+                    imageRepository.save(currentMain);
+                });
+
+        // Ustaw nowe zdjęcie jako główne
+        newMainImage.setMain(true);
+        return mapToDTO(imageRepository.save(newMainImage));
+    }
+
+    @Transactional
+    public void deleteImage(Long imageId) throws IOException {
+        User user = getCurrentUser();
+        UserProfileImage image = getImageAndCheckPermission(imageId, user);
+
+        // Usuń zdjęcie z Cloudinary
+        cloudinaryService.deleteImage(image.getPublicId());
+
+        // Sprawdź, czy to było główne zdjęcie
+        boolean wasMain = image.isMain();
+
+        // Usuń z bazy danych
+        imageRepository.delete(image);
+
+        // Jeśli było główne, ustaw inne jako główne
+        if (wasMain) {
+            UserProfile profile = user.getProfile();
+            List<UserProfileImage> remainingImages = imageRepository.findByUserProfileOrderByDisplayOrderAsc(profile);
+            if (!remainingImages.isEmpty()) {
+                UserProfileImage newMain = remainingImages.get(0);
+                // Sprawdź, czy ma przyciętą wersję profilową
+                if (newMain.getProfileUrl() != null) {
+                    newMain.setMain(true);
+                    imageRepository.save(newMain);
+                }
+            }
+        }
+
+        // Aktualizuj kolejność pozostałych zdjęć
+        reorderImages(user.getProfile());
+    }
+
+    @Transactional
+    public void updateImagesOrder(UserProfileImageOrderDTO orderDTO) {
         User user = getCurrentUser();
         UserProfile profile = user.getProfile();
 
-        List<UserProfileImage> images = imageRepository.findByUserProfileOrderByDisplayOrderAsc(profile);
-        Map<Long, UserProfileImage> imageMap = images.stream()
+        // Pobierz wszystkie zdjęcia użytkownika
+        List<UserProfileImage> userImages = imageRepository.findByUserProfile(profile);
+        Map<Long, UserProfileImage> imageMap = userImages.stream()
                 .collect(Collectors.toMap(UserProfileImage::getId, img -> img));
 
+        // Aktualizuj kolejność
         for (UserProfileImageOrderDTO.ImageOrderItem item : orderDTO.getImages()) {
-            UserProfileImage img = imageMap.get(item.getId());
-            if (img != null) {
-                img.setDisplayOrder(item.getDisplayOrder());
+            UserProfileImage image = imageMap.get(item.getId());
+            if (image != null) {
+                image.setDisplayOrder(item.getDisplayOrder());
+            } else {
+                throw new ResourceNotFoundException("Zdjęcie o ID " + item.getId() + " nie istnieje lub nie należy do tego użytkownika");
             }
         }
+
         imageRepository.saveAll(imageMap.values());
     }
 
-    private void updateImagesOrder(UserProfile profile) {
+    private void reorderImages(UserProfile profile) {
         List<UserProfileImage> images = imageRepository.findByUserProfileOrderByDisplayOrderAsc(profile);
         for (int i = 0; i < images.size(); i++) {
-            images.get(i).setDisplayOrder(i);
+            UserProfileImage img = images.get(i);
+            img.setDisplayOrder(i);
         }
         imageRepository.saveAll(images);
+    }
+
+    private UserProfileImage getImageAndCheckPermission(Long imageId, User user) {
+        UserProfileImage image = imageRepository.findById(imageId)
+                .orElseThrow(() -> new ResourceNotFoundException("Zdjęcie o ID " + imageId + " nie istnieje"));
+
+        if (!image.getUserProfile().getId().equals(user.getProfile().getId())) {
+            throw new ResourceNotFoundException("Zdjęcie o ID " + imageId + " nie należy do tego użytkownika");
+        }
+
+        return image;
     }
 
     private User getCurrentUser() {
@@ -199,39 +201,47 @@ public class ImageService {
         return userService.getUserByEmail(email);
     }
 
+    private UserProfile getUserProfileById(Long profileId) {
+        if (profileId == null) {
+            // Jeśli profileId jest null, pobierz profil zalogowanego użytkownika
+            return getCurrentUser().getProfile();
+        }
+        return userProfileRepository.findById(profileId)
+                .orElseThrow(() -> new ResourceNotFoundException("Profil o ID " + profileId + " nie istnieje"));
+    }
+
     private UserProfileImageDTO mapToDTO(UserProfileImage image) {
-        UserProfileImageDTO dto = new UserProfileImageDTO();
-        dto.setId(image.getId());
-        dto.setImageUrl(image.getImageUrl());
-        dto.setProfileImageUrl(image.getProfileImageUrl());
-        dto.setMain(image.isMain());
-        dto.setDisplayOrder(image.getDisplayOrder());
-        return dto;
+        return UserProfileImageDTO.builder()
+                .id(image.getId())
+                .originalUrl(image.getOriginalUrl())
+                .galleryUrl(image.getGalleryUrl())
+                .thumbnailUrl(image.getThumbnailUrl())
+                .profileUrl(image.getProfileUrl())
+                .isMain(image.isMain())
+                .displayOrder(image.getDisplayOrder())
+                .build();
     }
 }
-
-// // // // // // // // // // // // // // // // // // // // // // // //
 
 
 
 //package com.matchmaking.backend.service.user.profile.image;
 //
+//import com.matchmaking.backend.exception.ResourceNotFoundException;
 //import com.matchmaking.backend.model.User;
 //import com.matchmaking.backend.model.UserProfile;
-//import com.matchmaking.backend.model.user.profile.image.ImageCropDTO;
-//import com.matchmaking.backend.model.user.profile.image.UserProfileImage;
-//import com.matchmaking.backend.model.user.profile.image.UserProfileImageDTO;
-//import com.matchmaking.backend.model.user.profile.image.UserProfileImageOrderDTO;
+//import com.matchmaking.backend.model.user.profile.image.*;
 //import com.matchmaking.backend.repository.UserProfileImageRepository;
+//import com.matchmaking.backend.repository.UserProfileRepository;
 //import com.matchmaking.backend.service.UserService;
 //import lombok.RequiredArgsConstructor;
+//import org.springframework.beans.factory.annotation.Value;
 //import org.springframework.security.core.context.SecurityContextHolder;
 //import org.springframework.stereotype.Service;
 //import org.springframework.transaction.annotation.Transactional;
 //import org.springframework.web.multipart.MultipartFile;
 //
 //import java.io.IOException;
-//import java.util.HashMap;
 //import java.util.List;
 //import java.util.Map;
 //import java.util.stream.Collectors;
@@ -241,149 +251,95 @@ public class ImageService {
 //public class ImageService {
 //
 //    private final UserService userService;
+//    private final UserProfileRepository userProfileRepository;
 //    private final CloudinaryService cloudinaryService;
 //    private final UserProfileImageRepository imageRepository;
 //
-//    private static final int MAX_IMAGES_PER_USER = 10;
+//    @Value("${app.profile.max-images:10}")
+//    private int maxImagesPerUser;
 //
-//    // Metody pobierania zdjęć zalogowanego użytkownika
-//    /**
-//     * Pobiera główne zdjęcie z profilu aktualnie zalogowanego użytkownika.
-//     * @return DTO głównego zdjęcia zalogowanego użytkownika lub null, jeśli nie ma takiego zdjęcia.
-//     */
 //    @Transactional(readOnly = true)
-//    public UserProfileImageDTO getCurrentUserProfileImage() {
-//        User user = getCurrentUser();
-//        return imageRepository.findByUserProfileAndIsMainTrue(user.getProfile())
+//    public UserProfileImageDTO getMainProfileImage(Long userProfileId) {
+//        UserProfile profile = getUserProfileById(userProfileId);
+//        return imageRepository.findByUserProfileAndIsMainTrue(profile)
 //                .map(this::mapToDTO)
 //                .orElse(null);
 //    }
 //
-//    /**
-//     * Pobiera listę zdjęć z profilu aktualnie zalogowanego użytkownika.
-//     * @return Lista DTO zdjęć profilu zalogowanego użytkownika.
-//     */
 //    @Transactional(readOnly = true)
-//    public List<UserProfileImageDTO> getUserProfileImages() {
-//        User user = getCurrentUser();
-//        return imageRepository.findByUserProfileOrderByDisplayOrderAsc(user.getProfile())
+//    public List<UserProfileImageDTO> getProfileImages(Long userProfileId) {
+//        UserProfile profile = getUserProfileById(userProfileId);
+//        return imageRepository.findByUserProfileOrderByDisplayOrderAsc(profile)
 //                .stream()
 //                .map(this::mapToDTO)
-//                .collect(Collectors.toList());
-//    }
-//
-//    // Metody pobierania zdjęć użytkownika po ID
-//    /**
-//     * Pobiera główne zdjęcie użytkownika o podanym <strong>ID</strong>.
-//     * @param userId ID użytkownika.
-//     * @return DTO głównego zdjęcia użytkownika o podanym ID lub null, jeśli nie ma takiego zdjęcia.
-//     */
-//    @Transactional(readOnly = true)
-//    public UserProfileImageDTO getUserProfileImageById(Long userId) {
-//        User user = userService.getUserById(userId);
-//        return imageRepository.findByUserProfileAndIsMainTrue(user.getProfile())
-//                .map(this::mapToDTO)
-//                .orElse(null);
-//    }
-//
-//    /**
-//     * Pobiera listę zdjęć z profilu użytkownika o podanym ID.
-//     * @param userId ID użytkownika.
-//     * @return Lista DTO zdjęć profilu użytkownika o podanym ID.
-//     */
-//    @Transactional(readOnly = true)
-//    public List<UserProfileImageDTO> getUserImagesById(Long userId) {
-//        User user = userService.getUserById(userId);
-//        return imageRepository.findByUserProfileOrderByDisplayOrderAsc(user.getProfile())
-//                .stream()
-//                .map(this::mapToDTO)
-//                .collect(Collectors.toList());
+//                .toList();
 //    }
 //
 //    @Transactional
-//    public UserProfileImageDTO uploadProfileImage(MultipartFile file) throws IOException {
+//    public UserProfileImageDTO uploadImage(MultipartFile file) throws IOException {
 //        User user = getCurrentUser();
 //        UserProfile profile = user.getProfile();
 //
 //        // Sprawdź limit zdjęć
-//        List<UserProfileImage> existingImages = imageRepository.findByUserProfileOrderByDisplayOrderAsc(profile);
-//        if (existingImages.size() >= MAX_IMAGES_PER_USER) {
-//            throw new IllegalStateException("Osiągnięto maksymalną liczbę zdjęć (" + MAX_IMAGES_PER_USER + ")");
+//        List<UserProfileImage> existingImages = imageRepository.findByUserProfile(profile);
+//        if (existingImages.size() >= maxImagesPerUser) {
+//            throw new IllegalStateException("Osiągnięto maksymalną liczbę zdjęć (" + maxImagesPerUser + ")");
 //        }
 //
-//        // Wgraj zdjęcie do Cloudinary
-//        Map<String, Object> uploadResult = cloudinaryService.uploadImage(file);
+//        // Wgraj wszystkie wersje zdjęcia do Cloudinary
+//        CloudinaryService.ImageVersions versions = cloudinaryService.uploadImage(file);
 //
-//        // Ustal kolejność zdjęcia (ostatnie)
-//        Integer maxOrder = imageRepository.findMaxDisplayOrder(profile);
-//        int newOrder = (maxOrder != null) ? maxOrder + 1 : 0;
+//        // Ustal kolejność nowego zdjęcia
+//        int displayOrder = existingImages.isEmpty() ? 0 :
+//                existingImages.stream()
+//                        .mapToInt(UserProfileImage::getDisplayOrder)
+//                        .max()
+//                        .orElse(-1) + 1;
 //
-//        // Utwórz nowy rekord
-//        UserProfileImage image = new UserProfileImage();
-//        image.setUserProfile(profile);
-//        image.setPublicId((String) uploadResult.get("public_id"));
-//        image.setImageUrl((String) uploadResult.get("url"));
-//        image.setMain(existingImages.isEmpty()); // Pierwsze zdjęcie jest automatycznie główne
-//        image.setDisplayOrder(newOrder);
+//        // Zapisz w bazie danych
+//        UserProfileImage image = UserProfileImage.builder()
+//                .userProfile(profile)
+//                .publicId(versions.getPublicId())
+//                .originalUrl(versions.getOriginalUrl())
+//                .galleryUrl(versions.getGalleryUrl())
+//                .thumbnailUrl(versions.getThumbnailUrl())
+//                .displayOrder(displayOrder)
+//                .isMain(existingImages.isEmpty()) // Pierwsze zdjęcie staje się główne
+//                .build();
 //
-//        UserProfileImage savedImage = imageRepository.save(image);
-//        return mapToDTO(savedImage);
+//        return mapToDTO(imageRepository.save(image));
 //    }
 //
 //    @Transactional
-//    public void deleteProfileImage(Long imageId) throws IOException {
+//    public UserProfileImageDTO cropImage(Long imageId, ImageCropDTO cropDTO) throws IOException {
 //        User user = getCurrentUser();
-//        UserProfile profile = user.getProfile();
+//        UserProfileImage image = getImageAndCheckPermission(imageId, user);
 //
-//        UserProfileImage image = imageRepository.findById(imageId)
-//                .orElseThrow(() -> new IllegalArgumentException("Zdjęcie nie istnieje"));
+//        // Kadruj zdjęcie za pomocą Cloudinary
+//        String profileUrl = cloudinaryService.cropToProfile(
+//                image.getPublicId(),
+//                cropDTO.getX(),
+//                cropDTO.getY(),
+//                cropDTO.getWidth(),
+//                cropDTO.getHeight()
+//        );
 //
-//        // Sprawdź czy zdjęcie należy do użytkownika
-//        if (!image.getUserProfile().getId().equals(profile.getId())) {
-//            throw new IllegalStateException("Nie masz uprawnień do tego zdjęcia");
-//        }
-//
-//        // Usuń oryginalne zdjęcie z Cloudinary
-//        cloudinaryService.deleteImage(image.getPublicId());
-//
-//        // Jeśli istnieje przycięta wersja, usuń również ją
-//        if (image.getProfileImagePublicId() != null) {
-//            cloudinaryService.deleteImage(image.getProfileImagePublicId());
-//        }
-//
-//        // Jeśli usuwane zdjęcie było główne, ustaw inne jako główne
-//        if (image.isMain()) {
-//            List<UserProfileImage> remainingImages = imageRepository.findByUserProfileOrderByDisplayOrderAsc(profile);
-//            remainingImages.remove(image);
-//            if (!remainingImages.isEmpty()) {
-//                UserProfileImage newMain = remainingImages.get(0);
-//                newMain.setMain(true);
-//                imageRepository.save(newMain);
-//            }
-//        }
-//
-//        // Usuń zdjęcie z bazy
-//        imageRepository.delete(image);
-//
-//        // Przenumeruj pozostałe zdjęcia
-//        updateImagesOrder(profile);
+//        image.setProfileUrl(profileUrl);
+//        return mapToDTO(imageRepository.save(image));
 //    }
 //
 //    @Transactional
-//    public void setMainProfileImage(Long imageId) {
+//    public UserProfileImageDTO setMainImage(Long imageId) throws IOException {
 //        User user = getCurrentUser();
 //        UserProfile profile = user.getProfile();
+//        UserProfileImage newMainImage = getImageAndCheckPermission(imageId, user);
 //
-//        // Znajdź zdjęcie, które ma być główne
-//        UserProfileImage newMainImage = imageRepository.findById(imageId)
-//                .orElseThrow(() -> new IllegalArgumentException("Zdjęcie nie istnieje"));
-//
-//        // Sprawdź czy zdjęcie należy do użytkownika
-//        if (!newMainImage.getUserProfile().getId().equals(profile.getId())) {
-//            throw new IllegalStateException("Nie masz uprawnień do tego zdjęcia");
+//        // Jeśli obrazek nie ma jeszcze przyciętej wersji profilowej, zwróć błąd
+//        if (newMainImage.getProfileUrl() == null) {
+//            throw new IllegalStateException("Zdjęcie musi być najpierw przycięte, aby ustawić je jako główne");
 //        }
 //
-//        // Znajdź aktualne główne zdjęcie i zmień jego status
+//        // Zmień status aktualnego głównego zdjęcia
 //        imageRepository.findByUserProfileAndIsMainTrue(profile)
 //                .ifPresent(currentMain -> {
 //                    currentMain.setMain(false);
@@ -392,80 +348,82 @@ public class ImageService {
 //
 //        // Ustaw nowe zdjęcie jako główne
 //        newMainImage.setMain(true);
-//        imageRepository.save(newMainImage);
+//        return mapToDTO(imageRepository.save(newMainImage));
 //    }
 //
 //    @Transactional
-//    public UserProfileImageDTO cropAndSetProfileImage(Long imageId, ImageCropDTO cropDTO) throws IOException {
+//    public void deleteImage(Long imageId) throws IOException {
 //        User user = getCurrentUser();
-//        UserProfile profile = user.getProfile();
+//        UserProfileImage image = getImageAndCheckPermission(imageId, user);
 //
-//        UserProfileImage image = imageRepository.findById(imageId)
-//                .orElseThrow(() -> new IllegalArgumentException("Zdjęcie nie istnieje"));
+//        // Usuń zdjęcie z Cloudinary
+//        cloudinaryService.deleteImage(image.getPublicId());
 //
-//        // Sprawdź czy zdjęcie należy do użytkownika
-//        if (!image.getUserProfile().getId().equals(profile.getId())) {
-//            throw new IllegalStateException("Nie masz uprawnień do tego zdjęcia");
+//        // Sprawdź czy to było główne zdjęcie
+//        boolean wasMain = image.isMain();
+//
+//        // Usuń z bazy danych
+//        imageRepository.delete(image);
+//
+//        // Jeśli było główne, ustaw inne jako główne
+//        if (wasMain) {
+//            UserProfile profile = user.getProfile();
+//            List<UserProfileImage> remainingImages = imageRepository.findByUserProfileOrderByDisplayOrderAsc(profile);
+//            if (!remainingImages.isEmpty()) {
+//                UserProfileImage newMain = remainingImages.get(0);
+//                // Sprawdź czy ma przyciętą wersję profilową
+//                if (newMain.getProfileUrl() != null) {
+//                    newMain.setMain(true);
+//                    imageRepository.save(newMain);
+//                }
+//            }
 //        }
 //
-//        // Przygotuj parametry przycinania dla Cloudinary
-//        Map<String, Object> cropParams = new HashMap<>();
-//        cropParams.put("x", cropDTO.getX());
-//        cropParams.put("y", cropDTO.getY());
-//        cropParams.put("width", cropDTO.getWidth());
-//        cropParams.put("height", cropDTO.getHeight());
-//        cropParams.put("crop", "crop");
-//
-//        // Usuń istniejące przycięte zdjęcie, jeśli istnieje
-//        if (image.getProfileImagePublicId() != null) {
-//            cloudinaryService.deleteImage(image.getProfileImagePublicId());
-//        }
-//
-//        // Wykonaj przycinanie przez Cloudinary
-//        Map<String, Object> croppedResult = cloudinaryService.transformImage(image.getPublicId(), cropParams);
-//
-//        // Aktualizuj dane zdjęcia
-//        image.setProfileImagePublicId((String) croppedResult.get("public_id"));
-//        image.setProfileImageUrl((String) croppedResult.get("url"));
-//
-//        // Ustaw jako główne jeśli nie jest
-//        if (!image.isMain()) {
-//            imageRepository.findByUserProfileAndIsMainTrue(profile)
-//                    .ifPresent(currentMain -> {
-//                        currentMain.setMain(false);
-//                        imageRepository.save(currentMain);
-//                    });
-//            image.setMain(true);
-//        }
-//
-//        return mapToDTO(imageRepository.save(image));
+//        // Aktualizuj kolejność pozostałych zdjęć
+//        reorderImages(user.getProfile());
 //    }
 //
 //    @Transactional
-//    public void updateProfileImagesOrder(UserProfileImageOrderDTO orderDTO) {
+//    public void updateImagesOrder(UserProfileImageOrderDTO orderDTO) {
 //        User user = getCurrentUser();
 //        UserProfile profile = user.getProfile();
 //
-//        List<UserProfileImage> images = imageRepository.findByUserProfileOrderByDisplayOrderAsc(profile);
-//        Map<Long, UserProfileImage> imageMap = images.stream()
+//        // Pobierz wszystkie zdjęcia użytkownika
+//        List<UserProfileImage> userImages = imageRepository.findByUserProfile(profile);
+//        Map<Long, UserProfileImage> imageMap = userImages.stream()
 //                .collect(Collectors.toMap(UserProfileImage::getId, img -> img));
 //
+//        // Aktualizuj kolejność
 //        for (UserProfileImageOrderDTO.ImageOrderItem item : orderDTO.getImages()) {
 //            UserProfileImage image = imageMap.get(item.getId());
 //            if (image != null) {
 //                image.setDisplayOrder(item.getDisplayOrder());
+//            } else {
+//                throw new ResourceNotFoundException("Zdjęcie o ID " + item.getId() + " nie istnieje lub nie należy do tego użytkownika");
 //            }
 //        }
 //
 //        imageRepository.saveAll(imageMap.values());
 //    }
 //
-//    private void updateImagesOrder(UserProfile profile) {
+//    private void reorderImages(UserProfile profile) {
 //        List<UserProfileImage> images = imageRepository.findByUserProfileOrderByDisplayOrderAsc(profile);
 //        for (int i = 0; i < images.size(); i++) {
-//            images.get(i).setDisplayOrder(i);
+//            UserProfileImage img = images.get(i);
+//            img.setDisplayOrder(i);
 //        }
 //        imageRepository.saveAll(images);
+//    }
+//
+//    private UserProfileImage getImageAndCheckPermission(Long imageId, User user) {
+//        UserProfileImage image = imageRepository.findById(imageId)
+//                .orElseThrow(() -> new ResourceNotFoundException("Zdjęcie o ID " + imageId + " nie istnieje"));
+//
+//        if (!image.getUserProfile().getId().equals(user.getProfile().getId())) {
+//            throw new IllegalArgumentException("Brak uprawnień do tego zdjęcia");
+//        }
+//
+//        return image;
 //    }
 //
 //    private User getCurrentUser() {
@@ -473,13 +431,20 @@ public class ImageService {
 //        return userService.getUserByEmail(email);
 //    }
 //
+//    private UserProfile getUserProfileById(Long profileId) {
+//        return userProfileRepository.findById(profileId)
+//                .orElseThrow(() -> new ResourceNotFoundException("Profil o ID " + profileId + " nie istnieje"));
+//    }
+//
 //    private UserProfileImageDTO mapToDTO(UserProfileImage image) {
-//        UserProfileImageDTO dto = new UserProfileImageDTO();
-//        dto.setId(image.getId());
-//        dto.setImageUrl(image.getImageUrl());
-//        dto.setProfileImageUrl(image.getProfileImageUrl());
-//        dto.setMain(image.isMain());
-//        dto.setDisplayOrder(image.getDisplayOrder());
-//        return dto;
+//        return UserProfileImageDTO.builder()
+//                .id(image.getId())
+//                .originalUrl(image.getOriginalUrl())
+//                .galleryUrl(image.getGalleryUrl())
+//                .thumbnailUrl(image.getThumbnailUrl())
+//                .profileUrl(image.getProfileUrl())
+//                .isMain(image.isMain())
+//                .displayOrder(image.getDisplayOrder())
+//                .build();
 //    }
 //}

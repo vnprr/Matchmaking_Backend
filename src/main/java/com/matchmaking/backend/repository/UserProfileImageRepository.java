@@ -13,4 +13,7 @@ public interface UserProfileImageRepository extends JpaRepository<UserProfileIma
     Optional<UserProfileImage> findByUserProfileAndIsMainTrue(UserProfile userProfile);
     @Query("SELECT MAX(i.displayOrder) FROM UserProfileImage i WHERE i.userProfile = ?1")
     Integer findMaxDisplayOrder(UserProfile userProfile);
+
+    // Dodana brakująca metoda
+    List<UserProfileImage> findByUserProfile(UserProfile userProfile);
 }
