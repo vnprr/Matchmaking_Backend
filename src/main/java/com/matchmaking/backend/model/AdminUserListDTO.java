@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 public class AdminUserListDTO {
     private Long id;
     private String email;
+    private Long profileId;
     private String firstName;
     private String lastName;
     private Role role;

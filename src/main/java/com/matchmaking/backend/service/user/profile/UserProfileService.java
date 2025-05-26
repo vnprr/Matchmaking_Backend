@@ -36,9 +36,19 @@ public class UserProfileService {
      */
     @Transactional(readOnly = true)
     public UserProfileDTO getProfileById(Long profileId) {
-        UserProfile profile = userProfileRepository.findById(profileId)
-                .orElseThrow(() -> new IllegalArgumentException("Profil o podanym ID nie istnieje"));
+        UserProfile profile = getProfileEntityById(profileId);
         return mapToDTO(profile);
+    }
+
+    /**
+     Pobiera encję profilu użytkownika po ID profilu
+     @param profileId ID profilu użytkownika
+     @return Encja profilu użytkownika
+     */
+    @Transactional(readOnly = true)
+    public UserProfile getProfileEntityById(Long profileId) {
+        return userProfileRepository.findById(profileId)
+                .orElseThrow(() -> new IllegalArgumentException("Profil o podanym ID nie istnieje"));
     }
 
     /**

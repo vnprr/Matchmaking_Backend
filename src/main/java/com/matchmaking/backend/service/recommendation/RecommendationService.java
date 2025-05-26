@@ -1,6 +1,8 @@
 package com.matchmaking.backend.service.recommendation;
 
 import com.matchmaking.backend.model.User;
+import com.matchmaking.backend.model.UserProfile;
+import com.matchmaking.backend.model.notification.Notification;
 import com.matchmaking.backend.model.notification.NotificationType;
 import com.matchmaking.backend.model.recommendation.RecommendationStatus;
 import com.matchmaking.backend.model.recommendation.UserRecommendation;
@@ -9,6 +11,7 @@ import com.matchmaking.backend.repository.NotificationRepository;
 import com.matchmaking.backend.repository.UserRecommendationRepository;
 import com.matchmaking.backend.service.notification.NotificationService;
 import com.matchmaking.backend.service.UserService;
+import com.matchmaking.backend.service.user.profile.UserProfileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -24,16 +27,18 @@ public class RecommendationService {
 
     private final UserRecommendationRepository recommendationRepository;
     private final UserService userService;
+    private final UserProfileService userProfileService;
     private final NotificationService notificationService;
+    private final NotificationRepository notificationRepository;
 
     @Transactional
-    public UserRecommendation createRecommendation(Long firstUserId, Long secondUserId) {
-        User firstUser = userService.getUserById(firstUserId);
-        User secondUser = userService.getUserById(secondUserId);
+    public UserRecommendation createRecommendation(Long firstProfileId, Long secondProfileId) {
+        UserProfile firstProfile = userProfileService.getProfileEntityById(firstProfileId);
+        UserProfile secondProfile = userProfileService.getProfileEntityById(secondProfileId);
 
         // Sprawdź, czy rekomendacja już istnieje
         Optional<UserRecommendation> existingRecommendation =
-                recommendationRepository.findByUsers(firstUser, secondUser);
+                recommendationRepository.findByProfiles(firstProfile, secondProfile);
 
         if (existingRecommendation.isPresent()) {
             return existingRecommendation.get();
@@ -41,8 +46,8 @@ public class RecommendationService {
 
         // Utwórz nową rekomendację
         UserRecommendation recommendation = UserRecommendation.builder()
-                .firstUser(firstUser)
-                .secondUser(secondUser)
+                .firstProfile(firstProfile)
+                .secondProfile(secondProfile)
                 .status(RecommendationStatus.NEW)
                 .createdBy(userService.getCurrentUser())
                 .build();
@@ -51,16 +56,16 @@ public class RecommendationService {
 
         // Utwórz powiadomienia dla obu użytkowników
         notificationService.createNotification(
-                firstUser,
+                firstProfile.getUser(),
                 NotificationType.NEW_RECOMMENDATION,
-                "Administrator polecił Ci nowego użytkownika: " + secondUser.getProfile().getFirstName(),
+                "Administrator polecił Ci nowy profil: " + secondProfile.getFirstName(),
                 recommendation.getId()
         );
 
         notificationService.createNotification(
-                secondUser,
+                secondProfile.getUser(),
                 NotificationType.NEW_RECOMMENDATION,
-                "Administrator polecił Ci nowego użytkownika: " + firstUser.getProfile().getFirstName(),
+                "Administrator polecił Ci nowy profil: " + firstProfile.getFirstName(),
                 recommendation.getId()
         );
 
@@ -69,16 +74,16 @@ public class RecommendationService {
 
     @Transactional(readOnly = true)
     public Page<UserRecommendationDTO> getUserRecommendations(
-            Long userId,
+            Long profileId,
             int page,
             int size
     ) {
-        User user = userService.getUserById(userId);
+        UserProfile profile = userProfileService.getProfileEntityById(profileId);
         Pageable pageable = Pageable.ofSize(size).withPage(page);
 
-        Page<UserRecommendation> recommendations = recommendationRepository.findAllByUser(user, pageable);
+        Page<UserRecommendation> recommendations = recommendationRepository.findAllByProfile(profile, pageable);
 
-        return recommendations.map(recommendation -> mapToDto(recommendation, userId));
+        return recommendations.map(recommendation -> mapToDto(recommendation, profileId));
     }
 
     @Transactional
@@ -95,7 +100,7 @@ public class RecommendationService {
         return recommendationRepository.save(recommendation);
     }
 
-    private UserRecommendationDTO mapToDto(UserRecommendation recommendation, Long userId) {
+    private UserRecommendationDTO mapToDto(UserRecommendation recommendation, Long profileId) {
         UserRecommendationDTO dto = new UserRecommendationDTO();
 
         // Mapowanie podstawowych pól
@@ -106,42 +111,32 @@ public class RecommendationService {
 
         dto.setCreatedById(recommendation.getCreatedBy().getId());
 
-        // Określenie polecanego użytkownika
-        User recommendedUser;
-        if (recommendation.getFirstUser().getId().equals(userId)) {
-            recommendedUser = recommendation.getSecondUser();
+        // Określenie polecanego profilu
+        UserProfile recommendedProfile;
+        if (recommendation.getFirstProfile().getId().equals(profileId)) {
+            recommendedProfile = recommendation.getSecondProfile();
         } else {
-            recommendedUser = recommendation.getFirstUser();
+            recommendedProfile = recommendation.getFirstProfile();
         }
 
-        // Ustawienie pól związanych z polecanym użytkownikiem
-        dto.setRecommendedUserId(recommendedUser.getId());
-        dto.setRecommendedUserEmail(recommendedUser.getEmail());
+        // Ustawienie pól związanych z polecanym profilem
+        dto.setRecommendedProfileId(recommendedProfile.getId());
+        dto.setRecommendedProfileName(recommendedProfile.getFirstName() + " " + recommendedProfile.getLastName());
 
         return dto;
     }
 
-    public void deleteRecommendation(Long recommendationId) {
+    public void deleteRecommendation(
+            Long recommendationId
+    ) {
         recommendationRepository.deleteById(recommendationId);
     }
 
-//    @Transactional(readOnly = true)
-//    public UserProfile getRecommendedUserProfile(Long recommendationId) {
-//        UserRecommendation recommendation = recommendationRepository.findById(recommendationId)
-//                .orElseThrow(() -> new IllegalArgumentException("Rekomendacja nie istnieje"));
-//
-//        User currentUser = userService.getCurrentUser();
-//        User recommendedUser = getRecommendedUser(recommendation, currentUser.getId());
-//
-//        return recommendedUser.getProfile();
-//    }
-//
-    public User getRecommendedUser (UserRecommendation recommendation, Long userId) {
-
-        if (recommendation.getFirstUser().getId().equals(userId)) {
-            return recommendation.getSecondUser();
+    public UserProfile getRecommendedProfile(UserRecommendation recommendation, Long profileId) {
+        if (recommendation.getFirstProfile().getId().equals(profileId)) {
+            return recommendation.getSecondProfile();
         } else {
-            return recommendation.getFirstUser();
+            return recommendation.getFirstProfile();
         }
     }
 }

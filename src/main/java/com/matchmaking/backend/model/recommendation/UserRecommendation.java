@@ -1,6 +1,7 @@
 package com.matchmaking.backend.model.recommendation;
 
 import com.matchmaking.backend.model.User;
+import com.matchmaking.backend.model.UserProfile;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -26,12 +27,12 @@ public class UserRecommendation {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "first_user_id", nullable = false)
-    private User firstUser;
+    @JoinColumn(name = "first_profile_id", nullable = false)
+    private UserProfile firstProfile;
 
     @ManyToOne
-    @JoinColumn(name = "second_user_id", nullable = false)
-    private User secondUser;
+    @JoinColumn(name = "second_profile_id", nullable = false)
+    private UserProfile secondProfile;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

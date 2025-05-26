@@ -21,21 +21,21 @@ public class RecommendationController {
     @PostMapping
     @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<UserRecommendation> createRecommendation(
-            @RequestParam Long firstUserId,
-            @RequestParam Long secondUserId) {
-        return ResponseEntity.ok(recommendationService.createRecommendation(firstUserId, secondUserId));
+            @RequestParam Long firstProfileId,
+            @RequestParam Long secondProfileId) {
+        return ResponseEntity.ok(recommendationService.createRecommendation(firstProfileId, secondProfileId));
     }
 
-    @GetMapping("/user/{userId}")
+    @GetMapping("/profile/{profileId}")
     public ResponseEntity<Page<UserRecommendationDTO>> getUserRecommendations(
-            @PathVariable Long userId,
+            @PathVariable Long profileId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
             ) {
         return ResponseEntity
                 .ok(recommendationService
                 .getUserRecommendations(
-                    userId,
+                    profileId,
                     page,
                     size
                 ));

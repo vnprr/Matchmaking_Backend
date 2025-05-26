@@ -7,8 +7,8 @@ import java.time.LocalDateTime;
 @Data
 public class UserRecommendationDTO {
     private Long id;
-    private Long recommendedUserId;
-    private String recommendedUserEmail;
+    private Long recommendedProfileId;
+    private String recommendedProfileName;
     private RecommendationStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime viewedAt;

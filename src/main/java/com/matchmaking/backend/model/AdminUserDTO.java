@@ -22,6 +22,7 @@ public class AdminUserDTO {
     private LocalDateTime accountLockedUntil;
 
     // Dane profilu
+    private Long profileId;
     private String firstName;
     private String lastName;
     private Gender gender;

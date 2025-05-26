@@ -85,15 +85,15 @@ public class NotificationService {
                 if (recommendation != null) {
                     User currentUser = userService.getCurrentUser();
 
-                    // Przeniesiona logika z RecommendationService.getRecommendedUser
-                    User recommendedUser;
-                    if (recommendation.getFirstUser().getId().equals(currentUser.getId())) {
-                        recommendedUser = recommendation.getSecondUser();
+                    // Przeniesiona logika z RecommendationService.getRecommendedProfile
+                    Long profileId;
+                    if (recommendation.getFirstProfile().getUser().getId().equals(currentUser.getId())) {
+                        profileId = recommendation.getSecondProfile().getId();
                     } else {
-                        recommendedUser = recommendation.getFirstUser();
+                        profileId = recommendation.getFirstProfile().getId();
                     }
 
-                    dto.setTargetId(recommendedUser.getProfile().getId());
+                    dto.setTargetId(profileId);
                 }
             } catch (Exception e) {
                 // Obsługa błędu lub logowanie
@@ -101,6 +101,5 @@ public class NotificationService {
         }
         return dto;
     }
-
 
 }

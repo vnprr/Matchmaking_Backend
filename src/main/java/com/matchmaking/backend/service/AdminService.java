@@ -144,7 +144,8 @@ public class AdminService {
         AdminUserListDTO dto = new AdminUserListDTO();
         dto.setId(user.getId());
         dto.setEmail(user.getEmail());
-        dto.setFirstName(user.getProfile().getFirstName());
+        dto.setProfileId(user.getProfile() != null ? user.getProfile().getId() : null);
+        dto.setFirstName(user.getProfile() != null ? user.getProfile().getFirstName() : null);
         dto.setLastName(user.getProfile().getLastName());
         dto.setRole(user.getRole());
         dto.setProvider(user.getProvider());
@@ -167,6 +168,7 @@ public class AdminService {
 
         // Dane profilu
         if (user.getProfile() != null) {
+            dto.setProfileId(user.getProfile().getId());
             dto.setFirstName(user.getProfile().getFirstName());
             dto.setLastName(user.getProfile().getLastName());
             dto.setGender(user.getProfile().getGender());
