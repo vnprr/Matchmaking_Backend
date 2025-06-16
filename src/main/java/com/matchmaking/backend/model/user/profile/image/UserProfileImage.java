@@ -41,11 +41,11 @@ public class UserProfileImage {
     @Column(nullable = false)
     private String thumbnailUrl;
 
-    // URL do przyciętego zdjęcia profilowego
-    private String profileUrl;
+    // URL do przyciętego zdjęcia avatara
+    private String avatarUrl;
 
     @Column(nullable = false)
-    private boolean isMain;
+    private boolean isAvatar;
 
     @Column(nullable = false)
     private int displayOrder;

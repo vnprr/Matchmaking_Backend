@@ -10,7 +10,7 @@ import java.util.Optional;
 
 public interface UserProfileImageRepository extends JpaRepository<UserProfileImage, Long> {
     List<UserProfileImage> findByUserProfileOrderByDisplayOrderAsc(UserProfile userProfile);
-    Optional<UserProfileImage> findByUserProfileAndIsMainTrue(UserProfile userProfile);
+    Optional<UserProfileImage> findByUserProfileAndIsAvatarTrue(UserProfile userProfile);
     @Query("SELECT MAX(i.displayOrder) FROM UserProfileImage i WHERE i.userProfile = ?1")
     Integer findMaxDisplayOrder(UserProfile userProfile);
 
