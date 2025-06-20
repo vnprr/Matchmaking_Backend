@@ -11,7 +11,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Arrays;
 
@@ -170,7 +169,7 @@ public class CloudinaryService {
 
     /**
      * Pobiera wymiary obrazu z Cloudinary.
-     * 
+     *
      * @param publicId identyfikator zdjęcia w Cloudinary
      * @return mapa zawierająca szerokość i wysokość obrazu (klucze: "width", "height")
      * @throws IOException w przypadku błędu podczas komunikacji z Cloudinary
