@@ -1,0 +1,151 @@
+# Matchmaking Application - Improvements and Changes
+
+## Testing
+1. **Lack of Unit Tests**
+   - Create unit tests for all service classes
+   - Test edge cases and error handling
+   - Use Mockito to mock dependencies
+
+2. **Lack of Integration Tests**
+   - Create integration tests for controllers
+   - Test API endpoints with MockMvc
+   - Test database operations
+
+3. **Test Coverage**
+   - Aim for at least 80% test coverage
+   - Focus on critical business logic
+
+## Security
+1. **JWT Implementation**
+   - Move JWT secret to environment variables
+   - Implement token refresh mechanism
+   - Add token blacklisting for logout
+
+2. **Password Security**
+   - Enforce stronger password policies
+   - Implement account lockout after failed attempts (partially implemented)
+   - Add CAPTCHA for login after multiple failures
+
+3. **OAuth2 Configuration**
+   - Secure OAuth2 redirect URIs
+   - Add more providers (Facebook, Apple)
+   - Improve user profile merging when same email uses different auth methods
+
+4. **CORS Configuration**
+   - Restrict CORS to specific domains in production
+   - Review and tighten security headers
+
+5. **Sensitive Data**
+   - Remove hardcoded credentials from application.properties
+   - Use environment variables or secure vaults
+
+## Code Quality
+1. **Error Handling**
+   - Implement global exception handler
+   - Standardize error responses
+   - Add more specific exception types
+
+2. **Logging**
+   - Add comprehensive logging throughout the application
+   - Implement structured logging
+   - Configure different log levels for environments
+
+3. **Code Organization**
+   - Refactor large service classes into smaller, focused classes
+   - Improve separation of concerns
+   - Rename classes for clarity (e.g., User to Account as noted in TODO)
+
+4. **DTOs and Validation**
+   - Complete DTO implementations for all entities
+   - Add comprehensive validation
+   - Implement custom validators where needed
+
+5. **Documentation**
+   - Add Javadoc to all public methods
+   - Document API endpoints with Swagger/OpenAPI
+   - Update README with more detailed setup instructions
+
+## Architecture
+1. **Database**
+   - Implement database migrations with Flyway or Liquibase
+   - Optimize entity relationships
+   - Add indexes for frequently queried fields
+
+2. **Caching**
+   - Implement caching for frequently accessed data
+   - Use Redis or similar for distributed caching
+
+3. **Performance**
+   - Optimize database queries
+   - Implement pagination for all list endpoints
+   - Add request/response compression
+
+4. **Scalability**
+   - Make the application stateless for horizontal scaling
+   - Implement message queues for asynchronous processing
+   - Consider microservices architecture for specific features
+
+## Features
+1. **User Management**
+   - Complete profile management features
+   - Implement user preferences
+   - Add user activity tracking
+
+2. **Matchmaking Algorithm**
+   - Improve recommendation algorithm
+   - Add machine learning components
+   - Implement feedback loop for better matches
+
+3. **Chat System**
+   - Add real-time messaging with WebSockets
+   - Implement message read receipts
+   - Add file/image sharing in chat
+
+4. **Notifications**
+   - Implement push notifications
+   - Add email notification preferences
+   - Create notification center UI
+
+5. **Admin Features**
+   - Complete admin dashboard
+   - Add user management tools
+   - Implement analytics and reporting
+
+## DevOps
+1. **CI/CD Pipeline**
+   - Set up automated testing
+   - Implement continuous deployment
+   - Add code quality checks
+
+2. **Monitoring**
+   - Implement health checks
+   - Add performance monitoring
+   - Set up alerting for critical issues
+
+3. **Deployment**
+   - Containerize application with Docker
+   - Create Kubernetes configurations
+   - Set up different environments (dev, staging, production)
+
+## Documentation
+1. **API Documentation**
+   - Generate API documentation with Swagger/OpenAPI
+   - Create postman collections for testing
+   - Document authentication flows
+
+2. **Developer Documentation**
+   - Improve code comments
+   - Create architecture diagrams
+   - Document development setup process
+
+3. **User Documentation**
+   - Create user guides
+   - Document features and limitations
+   - Add FAQ section
+
+## Immediate Priorities
+1. Implement comprehensive testing
+2. Fix security issues, especially hardcoded credentials
+3. Implement global exception handling
+4. Complete missing features in user management
+5. Improve documentation
