@@ -1,6 +1,6 @@
 package com.matchmaking.backend.service;
 
-import com.matchmaking.backend.model.User;
+import com.matchmaking.backend.model.auth.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;

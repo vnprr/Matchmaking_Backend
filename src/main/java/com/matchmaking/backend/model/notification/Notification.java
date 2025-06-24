@@ -1,6 +1,6 @@
 package com.matchmaking.backend.model.notification;
 
-import com.matchmaking.backend.model.User;
+import com.matchmaking.backend.model.auth.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

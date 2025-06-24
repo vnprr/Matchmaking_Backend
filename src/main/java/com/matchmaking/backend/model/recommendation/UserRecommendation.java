@@ -1,7 +1,7 @@
 package com.matchmaking.backend.model.recommendation;
 
-import com.matchmaking.backend.model.User;
-import com.matchmaking.backend.model.UserProfile;
+import com.matchmaking.backend.model.auth.User;
+import com.matchmaking.backend.model.profile.UserProfile;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

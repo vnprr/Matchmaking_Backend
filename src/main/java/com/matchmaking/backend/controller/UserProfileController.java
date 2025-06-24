@@ -1,8 +1,7 @@
 package com.matchmaking.backend.controller;
 
-import com.matchmaking.backend.model.UserProfileDTO;
-import com.matchmaking.backend.service.IdEncryptionService;
-import com.matchmaking.backend.service.user.profile.UserProfileService;
+import com.matchmaking.backend.model.profile.UserProfileDTO;
+import com.matchmaking.backend.service.profile.UserProfileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

@@ -1,6 +1,6 @@
 package com.matchmaking.backend.repository;
 
-import com.matchmaking.backend.model.UserProfile;
+import com.matchmaking.backend.model.profile.UserProfile;
 import com.matchmaking.backend.model.chat.Conversation;
 import com.matchmaking.backend.model.chat.Message;
 import org.springframework.data.domain.Page;

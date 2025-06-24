@@ -18,6 +18,14 @@ public class RecommendationController {
 
     private final RecommendationService recommendationService;
 
+    /**
+     * Tworzy rekomendację między dwoma profilami użytkowników.
+     * Dostępne tylko dla administratorów.
+     *
+     * @param firstProfileId  ID pierwszego profilu użytkownika
+     * @param secondProfileId ID drugiego profilu użytkownika
+     * @return Utworzona rekomendacja
+     */
     @PostMapping
     @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<UserRecommendation> createRecommendation(
@@ -26,6 +34,13 @@ public class RecommendationController {
         return ResponseEntity.ok(recommendationService.createRecommendation(firstProfileId, secondProfileId));
     }
 
+    /**
+     * Pobiera rekomendacje dla danego profilu użytkownika.
+     * @param profileId ID profilu użytkownika
+     * @param page Numer strony (domyślnie 0)
+     * @param size Rozmiar strony (domyślnie 20)
+     * @return Lista rekomendacji dla danego profilu
+     */
     @GetMapping("/profile/{profileId}")
     public ResponseEntity<Page<UserRecommendationDTO>> getUserRecommendations(
             @PathVariable Long profileId,
@@ -41,6 +56,11 @@ public class RecommendationController {
                 ));
     }
 
+    /**
+     * Zaktualizuje status rekomendacji.
+     * @param recommendationId ID rekomendacji
+     * @param status Nowy status rekomendacji
+     */
     @PutMapping("/{recommendationId}")
     public ResponseEntity<UserRecommendation> updateRecommendationStatus(
             @PathVariable Long recommendationId,
@@ -48,6 +68,11 @@ public class RecommendationController {
         return ResponseEntity.ok(recommendationService.updateRecommendationStatus(recommendationId, status));
     }
 
+    /**
+     * Pobiera rekomendację po ID.
+     * @param recommendationId ID rekomendacji
+     * @return Rekomendacja
+     */
     @DeleteMapping("/{recommendationId}")
     @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<Void> deleteRecommendation(@PathVariable Long recommendationId) {

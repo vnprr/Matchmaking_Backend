@@ -1,10 +1,10 @@
 package com.matchmaking.backend.controller;
 
 import com.matchmaking.backend.exception.ResourceNotFoundException;
-import com.matchmaking.backend.model.user.profile.image.ImageCropDTO;
-import com.matchmaking.backend.model.user.profile.image.UserProfileImageDTO;
-import com.matchmaking.backend.model.user.profile.image.UserProfileImageOrderDTO;
-import com.matchmaking.backend.service.user.profile.image.ImageService;
+import com.matchmaking.backend.model.image.ImageCropDTO;
+import com.matchmaking.backend.model.image.UserProfileImageDTO;
+import com.matchmaking.backend.model.image.UserProfileImageOrderDTO;
+import com.matchmaking.backend.service.image.ImageService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -16,6 +16,10 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.io.IOException;
 
+/**
+ * Kontroler do zarządzania zdjęciami profilu użytkownika.
+ * Obsługuje pobieranie, dodawanie, usuwanie i aktualizację zdjęć profilu.
+ */
 @RestController
 @RequestMapping("/api/profile")
 @RequiredArgsConstructor
@@ -23,26 +27,41 @@ public class ImageController {
 
     private final ImageService imageService;
 
+    /**
+     * Pobiera zdjęcie awatara aktualnie zalogowanego użytkownika.
+     */
     @GetMapping("/me/images/avatar")
     public ResponseEntity<UserProfileImageDTO> getCurrentUserAvatarImage() {
         return ResponseEntity.ok(imageService.getAvatarProfileImage(null));
     }
 
+    /**
+     * Pobiera wszystkie zdjęcia aktualnie zalogowanego użytkownika.
+     */
     @GetMapping("/me/images/all")
     public ResponseEntity<List<UserProfileImageDTO>> getCurrentUserImages() {
         return ResponseEntity.ok(imageService.getProfileImages(null));
     }
 
+    /**
+     * Pobiera zdjęcie awatara użytkownika o podanym ID.
+     */
     @GetMapping("/{profileId}/images/avatar")
     public ResponseEntity<UserProfileImageDTO> getProfileAvatarImage(@PathVariable Long profileId) {
         return ResponseEntity.ok(imageService.getAvatarProfileImage(profileId));
     }
 
+    /**
+     * Pobiera wszystkie zdjęcia użytkownika o podanym ID.
+     */
     @GetMapping("/{profileId}/images/all")
     public ResponseEntity<List<UserProfileImageDTO>> getProfileImages(@PathVariable Long profileId) {
         return ResponseEntity.ok(imageService.getProfileImages(profileId));
     }
 
+    /**
+     * Wgrywa nowe zdjęcie.
+     */
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> uploadImage(@RequestParam("file") MultipartFile file) {
         try {
@@ -59,8 +78,7 @@ public class ImageController {
 
     /**
      * Kadruje zdjęcie do określonego obszaru.
-     * W przeciwieństwie do metody setAvatarImage tutaj nie ma wymogu, aby kadrowanie było kwadratowe.
-     * 
+     *
      * @param imageId ID zdjęcia do kadrowania
      * @param cropDTO parametry kadrowania (x, y, width, height)
      * @return zaktualizowane zdjęcie lub komunikat o błędzie
@@ -83,9 +101,6 @@ public class ImageController {
 
     /**
      * Ustawia zdjęcie jako avatar i kadruje je do kwadratu.
-     * 
-     * Współrzędne (x,y) są liczone od lewego górnego rogu obrazka.
-     * System sprawdza, czy x+width lub y+height nie przekraczają wymiarów oryginalnego obrazka.
      * 
      * @param imageId ID zdjęcia do ustawienia jako avatar
      * @param cropDTO parametry kadrowania (x, y, width, height)
@@ -110,6 +125,9 @@ public class ImageController {
         }
     }
 
+    /**
+     * Usuwa zdjęcie o podanym ID.
+     */
     @DeleteMapping("/images/{imageId}")
     public ResponseEntity<?> deleteImage(@PathVariable Long imageId) {
         try {
@@ -122,6 +140,9 @@ public class ImageController {
         }
     }
 
+    /**
+     * Aktualizuje kolejność zdjęć profilu.
+     */
     @PutMapping("/images/order")
     public ResponseEntity<?> updateImagesOrder(@Valid @RequestBody UserProfileImageOrderDTO orderDTO) {
         try {
@@ -132,6 +153,9 @@ public class ImageController {
         }
     }
 
+    /**
+     * Pobiera zdjęcie o podanym ID.
+     */
     @GetMapping("/images/{imageId}")
     public ResponseEntity<?> getImage(@PathVariable Long imageId) {
         try {

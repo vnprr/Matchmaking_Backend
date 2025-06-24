@@ -1,14 +1,17 @@
 package com.matchmaking.backend.controller;
 
 
-import com.matchmaking.backend.model.*;
+import com.matchmaking.backend.model.auth.*;
 import com.matchmaking.backend.service.AuthService;
 import jakarta.validation.Valid;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * Kontroler obsługujący operacje związane z autoryzacją użytkowników.
+ * Obsługuje rejestrację, logowanie, weryfikację konta, resetowanie hasła i zmianę adresu e-mail.
+ */
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor

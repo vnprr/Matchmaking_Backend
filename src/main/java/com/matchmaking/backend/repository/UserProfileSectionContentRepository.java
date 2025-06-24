@@ -1,8 +1,8 @@
 package com.matchmaking.backend.repository;
 
-import com.matchmaking.backend.model.UserProfile;
-import com.matchmaking.backend.model.user.profile.section.UserProfileSectionContent;
-import com.matchmaking.backend.model.user.profile.section.UserProfileSectionDefinition;
+import com.matchmaking.backend.model.profile.UserProfile;
+import com.matchmaking.backend.model.section.UserProfileSectionContent;
+import com.matchmaking.backend.model.section.UserProfileSectionDefinition;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

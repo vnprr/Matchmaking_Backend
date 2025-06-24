@@ -1,6 +1,6 @@
 package com.matchmaking.backend.service.notification;
 
-import com.matchmaking.backend.model.User;
+import com.matchmaking.backend.model.auth.User;
 import com.matchmaking.backend.model.notification.Notification;
 import com.matchmaking.backend.model.notification.NotificationDTO;
 import com.matchmaking.backend.model.notification.NotificationType;

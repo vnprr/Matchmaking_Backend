@@ -1,13 +1,13 @@
 package com.matchmaking.backend.service;
 
-import com.matchmaking.backend.model.Role;
-import com.matchmaking.backend.model.User;
-import com.matchmaking.backend.model.UserProfile;
-import com.matchmaking.backend.model.AdminUserDTO;
-import com.matchmaking.backend.model.AdminUserListDTO;
+import com.matchmaking.backend.model.auth.Role;
+import com.matchmaking.backend.model.auth.User;
+import com.matchmaking.backend.model.profile.UserProfile;
+import com.matchmaking.backend.model.admin.AdminUserDTO;
+import com.matchmaking.backend.model.admin.AdminUserListDTO;
 import com.matchmaking.backend.repository.UserRepository;
-import com.matchmaking.backend.service.user.profile.UserProfileCreatorService;
-import com.matchmaking.backend.service.user.profile.image.CloudinaryService;
+import com.matchmaking.backend.service.profile.UserProfileCreatorService;
+import com.matchmaking.backend.service.image.CloudinaryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;

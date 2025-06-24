@@ -1,6 +1,6 @@
 package com.matchmaking.backend.service;
 
-import com.matchmaking.backend.model.UserProfile;
+import com.matchmaking.backend.model.profile.UserProfile;
 import com.matchmaking.backend.model.chat.*;
 import com.matchmaking.backend.model.notification.NotificationType;
 import com.matchmaking.backend.repository.ConversationRepository;
@@ -27,6 +27,7 @@ public class ChatService {
 
     @Transactional(readOnly = true)
     public Page<ConversationDTO> getUserConversations(Long profileId, Pageable pageable) {
+
         UserProfile currentProfile = getUserProfileById(profileId);
         Page<Conversation> conversations = conversationRepository
                 .findConversationsByProfile(currentProfile, pageable);

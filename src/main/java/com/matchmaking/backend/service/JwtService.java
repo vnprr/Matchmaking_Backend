@@ -16,10 +16,10 @@ public class JwtService {
     private final String SECRET_KEY = "securesecuresecuresecuresecuresecuresecuresecure";
 
     /**
-     * Generates a JWT token for the given username.
+     * Generuje token JWT dla podanego użytkownika.
      *
-     * @param username the username to include in the token
-     * @return the generated JWT token
+     * @param username nazwa użytkownika, dla którego generowany jest token
+     * @return wygenenerowany token JWT
      */
     public String generateToken(String username) {
         return Jwts.builder()
@@ -31,10 +31,10 @@ public class JwtService {
     }
 
     /**
-     * Extracts the username from the given JWT token.
+     * Ekstrahuje nazwę użytkownika z podanego tokenu JWT.
      *
-     * @param token the JWT token
-     * @return the username extracted from the token
+     * @param token  token JWT
+     * @return nazwa użytkownika zawarta w tokenie
      */
     public String extractUsername(String token) {
         return Jwts.parser()
@@ -46,10 +46,10 @@ public class JwtService {
     }
 
     /**
-     * Validates the given JWT token.
+     * waliduje token JWT, sprawdzając jego poprawność
      *
-     * @param token the JWT token to validate
-     * @return `true` if the token is <b>valid</b>, `false` otherwise
+     * @param token walidowany token JWT
+     * @return <ul><li>`true` jeśli token jest <b>poprawny</b>,</li><li>`false` w przeciwnym wypadku.</li></ul>
      */
     public boolean validateToken(String token) {
         try {

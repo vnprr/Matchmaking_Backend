@@ -1,6 +1,6 @@
 package com.matchmaking.backend.repository;
 
-import com.matchmaking.backend.model.UserProfile;
+import com.matchmaking.backend.model.profile.UserProfile;
 import com.matchmaking.backend.model.recommendation.UserRecommendation;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

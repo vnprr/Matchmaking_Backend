@@ -1,7 +1,6 @@
 package com.matchmaking.backend.model.chat;
 
-import com.matchmaking.backend.model.User;
-import com.matchmaking.backend.model.UserProfile;
+import com.matchmaking.backend.model.profile.UserProfile;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;

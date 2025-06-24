@@ -1,8 +1,6 @@
 package com.matchmaking.backend.service.recommendation;
 
-import com.matchmaking.backend.model.User;
-import com.matchmaking.backend.model.UserProfile;
-import com.matchmaking.backend.model.notification.Notification;
+import com.matchmaking.backend.model.profile.UserProfile;
 import com.matchmaking.backend.model.notification.NotificationType;
 import com.matchmaking.backend.model.recommendation.RecommendationStatus;
 import com.matchmaking.backend.model.recommendation.UserRecommendation;
@@ -11,7 +9,7 @@ import com.matchmaking.backend.repository.NotificationRepository;
 import com.matchmaking.backend.repository.UserRecommendationRepository;
 import com.matchmaking.backend.service.notification.NotificationService;
 import com.matchmaking.backend.service.UserService;
-import com.matchmaking.backend.service.user.profile.UserProfileService;
+import com.matchmaking.backend.service.profile.UserProfileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

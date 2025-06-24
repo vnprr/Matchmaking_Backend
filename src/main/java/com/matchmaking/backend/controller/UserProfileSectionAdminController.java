@@ -1,8 +1,8 @@
 package com.matchmaking.backend.controller;
 
-import com.matchmaking.backend.model.user.profile.section.UserProfileSectionDefinitionChangeDTO;
-import com.matchmaking.backend.model.user.profile.section.UserProfileSectionDefinitionDTO;
-import com.matchmaking.backend.service.user.profile.section.UserProfileSectionAdminService;
+import com.matchmaking.backend.model.section.UserProfileSectionDefinitionChangeDTO;
+import com.matchmaking.backend.model.section.UserProfileSectionDefinitionDTO;
+import com.matchmaking.backend.service.section.UserProfileSectionAdminService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -28,6 +28,7 @@ public class UserProfileSectionAdminController {
 
     /**
      * Pobiera sekcję po ID
+     * @param id ID sekcji
      */
     @GetMapping("/{id}")
     public ResponseEntity<UserProfileSectionDefinitionDTO> getSectionById(@PathVariable Long id) {
@@ -36,6 +37,7 @@ public class UserProfileSectionAdminController {
 
     /**
      * Tworzy nową sekcję profilu (dodawaną zawsze na koniec listy)
+     * @param sectionDTO Dane sekcji do utworzenia
      */
     @PostMapping
     public ResponseEntity<UserProfileSectionDefinitionDTO> createSection(
@@ -45,6 +47,7 @@ public class UserProfileSectionAdminController {
 
     /**
      * Aktualizuje sekcję profilu (bez zmiany kolejności)
+     * @param id ID sekcji do aktualizacji
      */
     @PutMapping("/{id}")
     public ResponseEntity<UserProfileSectionDefinitionDTO> updateSection(
@@ -55,22 +58,13 @@ public class UserProfileSectionAdminController {
 
     /**
      * Usuwa sekcję profilu i przenumerowuje pozostałe elementy
+     * @param id ID sekcji do usunięcia
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteSection(@PathVariable Long id) {
         sectionAdminService.deleteSectionDefinition(id);
         return ResponseEntity.noContent().build();
     }
-
-    /**
-     * Aktualizuje kolejność wyświetlania sekcji z zachowaniem ciągłej numeracji 0-n
-     */
-//    @PutMapping("/order")
-//    public ResponseEntity<Void> updateSectionsOrder(
-//            @RequestBody List<UserProfileSectionDefinitionDTO> sections) {
-//        sectionAdminService.updateSectionsOrder(sections);
-//        return ResponseEntity.ok().build();
-//    }
 
     /**
      * Przesuwa sekcję o jedną pozycję w górę

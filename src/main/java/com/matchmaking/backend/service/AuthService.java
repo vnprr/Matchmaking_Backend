@@ -1,8 +1,8 @@
 package com.matchmaking.backend.service;
 
-import com.matchmaking.backend.model.*;
-import com.matchmaking.backend.service.user.profile.UserProfileCreatorService;
-import com.matchmaking.backend.service.user.profile.UserProfileService;
+import com.matchmaking.backend.model.auth.*;
+import com.matchmaking.backend.model.profile.UserProfile;
+import com.matchmaking.backend.service.profile.UserProfileCreatorService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

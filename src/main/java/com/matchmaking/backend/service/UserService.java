@@ -2,13 +2,12 @@ package com.matchmaking.backend.service;
 
 //3
 
-import com.matchmaking.backend.model.Provider;
-import com.matchmaking.backend.model.Role;
-import com.matchmaking.backend.model.User;
-import com.matchmaking.backend.model.UserProfile;
+import com.matchmaking.backend.model.auth.Provider;
+import com.matchmaking.backend.model.auth.Role;
+import com.matchmaking.backend.model.auth.User;
+import com.matchmaking.backend.model.profile.UserProfile;
 import com.matchmaking.backend.repository.UserRepository;
-import com.matchmaking.backend.service.user.profile.UserProfileCreatorService;
-import com.matchmaking.backend.service.user.profile.UserProfileService;
+import com.matchmaking.backend.service.profile.UserProfileCreatorService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;

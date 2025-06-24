@@ -21,6 +21,12 @@ public class NotificationController {
     private final NotificationService notificationService;
     private final UserService userService;
 
+    /**
+     * Pobiera powiadomienia dla zalogowanego użytkownika.
+     *
+     * @param pageable Parametry paginacji.
+     * @return Lista powiadomień użytkownika.
+     */
     @GetMapping
     public ResponseEntity<Page<NotificationDTO>> getCurrentUserNotifications(
             @PageableDefault(size = 20) Pageable pageable) {
@@ -30,6 +36,11 @@ public class NotificationController {
         return ResponseEntity.ok(notificationService.getUserNotifications(userId, pageable));
     }
 
+    /**
+     * Pobiera liczbę nieprzeczytanych powiadomień dla zalogowanego użytkownika.
+     *
+     * @return Liczba nieprzeczytanych powiadomień.
+     */
     @GetMapping("/unread-count")
     public ResponseEntity<Long> getUnreadNotificationsCount() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -38,6 +49,12 @@ public class NotificationController {
         return ResponseEntity.ok(notificationService.getUnreadNotificationsCount(userId));
     }
 
+    /**
+     * Oznacza powiadomienie jako przeczytane.
+     *
+     * @param notificationId ID powiadomienia do oznaczenia jako przeczytane.
+     * @return Zaktualizowane powiadomienie.
+     */
     @PutMapping("/{notificationId}/read")
     public ResponseEntity<Notification> markAsRead(@PathVariable Long notificationId) {
         return ResponseEntity.ok(notificationService.markAsRead(notificationId));

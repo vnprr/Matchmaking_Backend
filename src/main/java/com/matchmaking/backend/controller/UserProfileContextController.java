@@ -1,7 +1,7 @@
 package com.matchmaking.backend.controller;
 
-import com.matchmaking.backend.model.user.profile.UserProfileContextDTO;
-import com.matchmaking.backend.service.user.profile.UserProfileContextService;
+import com.matchmaking.backend.model.profile.UserProfileContextDTO;
+import com.matchmaking.backend.service.profile.UserProfileContextService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,6 +24,11 @@ public class UserProfileContextController {
         return ResponseEntity.ok(userProfileContextService.getProfileContext(userId));
     }
 
+    /**
+     * Pobiera kontekst profilu dla aktualnie zalogowanego użytkownika.
+     *
+     * @return DTO z informacjami o uprawnieniach do profilu aktualnego użytkownika
+     */
     @GetMapping("/me")
     public ResponseEntity<UserProfileContextDTO> getCurrentUserProfileContext() {
         return ResponseEntity.ok(userProfileContextService.getCurrentUserProfileContext());

@@ -1,6 +1,6 @@
 package com.matchmaking.backend.repository;
 
-import com.matchmaking.backend.model.User;
+import com.matchmaking.backend.model.auth.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -11,7 +11,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
     Optional<User> findByVerificationCode(String verificationCode);
 
-    // Nowa metoda do wyszukiwania użytkowników
+
     Page<User> findByEmailContainingOrProfileFirstNameContainingOrProfileLastNameContaining(
             String email, String firstName, String lastName, Pageable pageable);
 }
